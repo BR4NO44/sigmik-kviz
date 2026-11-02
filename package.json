@@ -1,0 +1,6 @@
+{
+  "name": "sigmik-kviz",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Kvíz zo Signálových mikrokontrolérov (TMS320F2837xD)"
+}

@@ -1,0 +1,6 @@
+scores.json
+__pycache__/
+.DS_Store
+.vercel/
+node_modules/
+.env*
