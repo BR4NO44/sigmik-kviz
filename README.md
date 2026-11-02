@@ -1,6 +1,6 @@
 # Kvíz – Signálové mikrokontroléry
 
-Generátor testu (ABCD, viac správnych, pravda/nepravda, číselné, slovné, dopĺňanie kódu, zoraďovanie, priraďovanie) z prednášok 2–6 predmetu Signálové mikrokontroléry (TMS320F2837xD). Obsahuje rebríček najlepších výsledkov.
+Generátor testu (ABCD, viac správnych, pravda/nepravda, číselné, slovné, dopĺňanie kódu, zoraďovanie, priraďovanie) z prednášok 1–6 predmetu Signálové mikrokontroléry (TMS320F2837xD). Rebríček počíta správne odpovede na meno hráča.
 
 ## Lokálne spustenie (rebríček v súbore `scores.json`)
 ```

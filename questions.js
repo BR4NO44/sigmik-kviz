@@ -4,6 +4,7 @@
 "use strict";
 
 const LECTURES = {
+  1: "Úvod, štandardy v C, mikrokontrolér, registre, hodiny, GPIO",
   2: "Prerušenia, PIE a časovače",
   3: "PWM: časová základňa, komparácia, riadenie akcie, dead-band",
   4: "PWM chopper, Trip-zone, Event-trigger",
@@ -64,6 +65,191 @@ const P = (lec, topic, text, pairs, expl = "") =>
   G(lec, topic, "match", () => ({ text, pairs: shuffle(pairs).slice(0, 4), expl }));
 
 /* =====================================================================
+   PREDNÁŠKA 1 – o predmete, štandardy v C, mikrokontrolér, registre, hodiny, GPIO
+   ===================================================================== */
+S(1, "Organizácia", "Koľko bodov je potrebných spolu na získanie zápočtu?", "aspoň 21", ["aspoň 10", "aspoň 15", "aspoň 30", "aspoň 40"],
+  "Zápočet: 2× test Moodle (max. 30 b.) + zadanie (max. 10 b.); potrebných je spolu aspoň 21 bodov.");
+S(1, "Organizácia", "Aký je maximálny počet bodov z dvoch zápočtových testov Moodle?", "30", ["10", "15", "45", "60"],
+  "2× test Moodle spolu max. 30 bodov (v 6. a 11. týždni semestra).");
+S(1, "Organizácia", "Za čo možno na zápočet získať maximálne 10 bodov?", "za zadanie (prezentácia v 12. týždni)", ["za prvý test Moodle", "za účasť na prednáškach", "za skúškovú praktickú časť", "za opravný test"],
+  "Zadanie je za max. 10 bodov a prezentuje sa v 12. týždni semestra.");
+S(1, "Organizácia", "Aké bodové rozdelenie má skúška?", "test Moodle max. 45 b. + praktická časť max. 15 b.", ["test Moodle max. 30 b. + zadanie max. 10 b.", "iba test Moodle max. 60 b.", "iba praktická časť max. 60 b.", "ústna skúška max. 45 b. + test max. 15 b."],
+  "Skúška: test Moodle (45 b.) a praktická časť (15 b.), spolu 60 bodov.");
+S(1, "Organizácia", "V ktorom programe sa na cvičeniach programuje mikrokontrolér?", "Code Composer Studio", ["MATLAB Simulink", "Arduino IDE", "Keil µVision", "Visual Studio"],
+  "Pracuje sa v Code Composer Studio (CCStudio) od Texas Instruments s podporou C2000 a emulátorom XDS100.");
+S(1, "Organizácia", "Aký emulátor sa pri inštalácii CCStudia odporúča nainštalovať?", "XDS100", ["XDS560", "ST-Link", "J-Link", "PICkit"],
+  "Treba nainštalovať podporu len pre C2000 a len nevyhnutný emulátor (XDS100).");
+TF(1, "Organizácia", "Ak máte vo Windows názov používateľského účtu s diakritikou, inštalácia zahraničného softvéru môže robiť problémy.", true,
+  "Diakritika v názve účtu často spôsobuje problémy pri inštalácii zahraničného softvéru.");
+
+S(1, "Štandardy v C", "Ktoré z uvedených sú štandardy pre programovanie v jazyku C?", "MISRA, CERT, AUTOSAR", ["MISRA, HTML, USB", "CERT, SPI, I2C", "AUTOSAR, UART, ADC", "ISO 9001, MISRA, PWM"],
+  "Existuje viacero štandardov (MISRA, CERT, AUTOSAR…); firmy si často stanovujú aj vlastný „firemný“ štandard.");
+S(1, "Štandardy v C", "Čo najviac zohľadňujú štandardy pre programovanie v jazyku C?", "konvencie pomenovania premenných a funkcií", ["rýchlosť kompilácie", "veľkosť zdrojového súboru", "výber operačného systému", "typ použitého emulátora"],
+  "Štandardy riešia najmä pomenovanie premenných a funkcií, ale aj spôsob písania funkcií a formátovanie.");
+S(1, "Štandardy v C", "Z čoho pozostáva modul pri modulárnom programovaní v C?", "minimálne z hlavičkového súboru (.h) a zdrojového súboru (.c)", ["iba zo súboru .c", "z jedného súboru .exe", "z linkovacieho súboru .cmd a súboru .map", "z viacerých funkcií main()"],
+  "Modul = súbor vzájomne súvisiacich funkcií, premenných a definícií; má min. 1 súbor .h a 1 súbor .c.");
+S(1, "Štandardy v C", "Čo má byť v hlavičkovom súbore (.h) modulu?", "iba to, čo chce programátor sprístupniť používateľovi modulu", ["celý zdrojový kód všetkých funkcií", "iba komentáre bez deklarácií", "všetky lokálne premenné modulu", "obsah registrov mikrokontroléra"],
+  "Hlavičkový súbor obsahuje len verejné rozhranie modulu a v komentároch aj pokyny na používanie funkcií.");
+TF(1, "Štandardy v C", "Pri písaní modulov pre opakovanú použiteľnosť je vhodné spoliehať sa na existenciu globálnych premenných.", false,
+  "Moduly sa nemajú spoliehať na globálne premenné (výnimkou sú napr. registre); používanie globálnych premenných treba minimalizovať.");
+TF(1, "Štandardy v C", "Moduly si často definujú vlastné dátové typy, s ktorými pracujú.", true,
+  "Modul by sa nemal spoliehať na existenciu dátových typov definovaných inde.");
+S(1, "Štandardy v C", "Aká je štruktúra pomenovania premenných/funkcií podľa prednášky?", "prefix_typNazov_suffix", ["typ.prefix.nazov", "nazov_typ_prefix", "suffix-prefix-typ", "TYP_NAZOV"],
+  "Prefix = skratka modulu, typ = skratka dátového typu, suffix (nepovinný) = napr. fyzikálny rozmer.");
+S(1, "Štandardy v C", "Čo vyjadruje prefix v mene premennej prefix_typNazov_suffix?", "skratku modulu, ku ktorému premenná/funkcia patrí", ["dátový typ premennej", "fyzikálny rozmer premennej", "adresu premennej v pamäti", "zoznam parametrov funkcie"],
+  "Pri lokálnej premennej sa prefix môže vynechať.");
+S(1, "Štandardy v C", "Čo udáva suffix v mene premennej, napr. trc_r32SamplingTime_ms?", "napr. fyzikálny rozmer (jednotku) premennej", ["názov modulu", "dátový typ premennej", "poradové číslo funkcie", "prístupové práva k premennej"],
+  "Suffix nie je povinný; „_ms“ hovorí, že čas je v milisekundách.");
+S(1, "Štandardy v C", "Prečo sa v embedded programovaní používajú typy ako int16, int32, uint16, real32?", "lebo veľkosť pôvodných typov (napr. int) je závislá od implementácie", ["lebo sú rýchlejšie ako pôvodné typy", "lebo ich vyžaduje kompilátor jazyka C", "lebo šetria napätie napájania", "lebo pôvodné typy v C neexistujú"],
+  "Napr. int má v MCU 16 bitov, ale v PC 32 bitov – pomenovanie vyjadruje veľkosť typu.");
+TF(1, "Štandardy v C", "Dátový typ int má vždy rovnakú veľkosť na všetkých platformách (v MCU aj v PC).", false,
+  "int môže mať 16 bitov v MCU a 32 bitov v PC.");
+S(1, "Štandardy v C", "Ako sa definuje vlastný typ int32 z príkladu na prednáške?", "typedef long int32;", ["#define int32 = long", "int32 = (long)", "struct int32 long;", "using int32 = long;"],
+  "Používateľ knižnice si často musí definície týchto typov napísať sám, napr. typedef long int32.");
+M(1, "Štandardy v C", "Ktoré z uvedených zásad formátovania kódu sú podľa prednášky vhodné?",
+  ["používať tabulátor a prázdne riadky na oddelenie častí kódu", "deklarovať premenné na začiatku funkcie", "používať komentáre", "medzera pred a za +, -, =, ale nie za * a /"],
+  ["písať celý blok if na jeden riadok", "nepoužívať žiadne komentáre", "dávať medzery okolo * a / vždy", "deklarovať všetky premenné až pri ich prvom použití"],
+  "Prehľadný kód je základ úspechu – najmä, ak na projekte pracuje viac ľudí.");
+TF(1, "Štandardy v C", "Výraz <code>pVoltage->V = 0.86603*pVoltage->Ubeta - 0.5*pVoltage->Ualpha</code> je zapísaný podľa odporúčaného štýlu (medzery okolo =, – ale nie okolo *).", true,
+  "Medzery sa dávajú okolo +, –, =, nie však okolo * a /.");
+S(1, "Štandardy v C", "Čo je vhodné robiť pri komentovaní kódu?", "používať komentáre, napr. vysvetlenie jednotlivých krokov konfigurácie", ["komentáre vynechať, kód vysvetľuje všetko sám", "komentovať len na konci projektu", "komentáre písať iba v hlavičkových súboroch s binárnymi dátami", "komentáre nahradiť dlhšími názvami súborov"],
+  "Prednáška ukazuje komentované kroky konfigurácie SPI (Step 2a, Step 2b…).");
+S(1, "Štruktúry", "Ako sa v C označuje dátový typ združujúci viac premenných rôznych typov pod jedným menom?", "štruktúra (struct)", ["pole (array)", "makro (#define)", "smerník (pointer)", "výčet (enum)"],
+  "Príklad: typedef struct controller {...} CONTROLLER_TYP;");
+S(1, "Štruktúry", "Prečo sa funkcii, ktorá mení štruktúru, odovzdáva smerník na štruktúru?", "aby zmena hodnôt zostala zachovaná aj po skončení funkcie", ["aby funkcia bežala rýchlejšie ako main()", "aby sa štruktúra nemusela deklarovať", "aby sa zmenila veľkosť štruktúry", "aby sa premenné v štruktúre vynulovali"],
+  "Cez smerník funkcia pracuje s originálom štruktúry, nie s kópiou.");
+S(1, "Štruktúry", "Ako sa pristupuje k členu štruktúry cez smerník, napr. pController?", "pController->r32Target", ["pController.r32Target()", "pController::r32Target", "*pController[r32Target]", "pController<r32Target>"],
+  "Operátor -> sa používa na prístup k členu cez smerník na štruktúru.");
+TF(1, "Štruktúry", "V niektorých HAL (Hardware Application Layer) sa hardvér nastavuje pomocou parametrov v štruktúre, ktorá môže uchovať aj výstupy výpočtov (napr. hodnotu TBPRD).", true,
+  "Štruktúra sa odovzdá funkcii na nastavenie parametrov a môže slúžiť aj na uchovanie dôležitých výstupov.");
+
+S(1, "Mikrokontrolér", "Z čoho sa skladá mikrokontrolér?", "z výpočtovej jednotky (CPU) a periférnych obvodov", ["iba z pamäte RAM a FLASH", "iba z kryštálového oscilátora a PLL", "z CPU a externého operačného systému", "iba z periférií bez CPU"],
+  "Mikrokontrolér = CPU + periférne obvody.");
+S(1, "Mikrokontrolér", "Čím sa signálový mikrokontrolér (DSC) odlišuje od bežného?", "má špeciálne výpočtové moduly pre spracovanie signálov (násobičky, filtre, tabuľky…)", ["nemá žiadne periférie", "nemá CPU", "pracuje len s analógovými signálmi", "nedá sa programovať v jazyku C"],
+  "DSC majú navyše veľa periférií (PWM, ADC, CAP, QEP…).");
+S(1, "Mikrokontrolér", "Kde sa bežne používajú signálové mikrokontroléry (DSC)?", "v embedded zariadeniach, napr. riadenie práčky, pohonov, vozidiel", ["iba v stolových počítačoch", "iba v grafických kartách", "iba v serveroch", "iba v mobilných sieťach"],
+  "DSC sú súčasťou jednoúčelových zariadení a riadiacich jednotiek (práčky, chladničky, automobily, pohony…).");
+S(1, "Mikrokontrolér", "Koľko CPU a pomocných jadier CLA obsahuje TMS320F2837xD?", "2× 32-bitové CPU a 2× CLA", ["1× CPU a 1× CLA", "4× CPU bez CLA", "2× 8-bitové CPU a 2× CLA", "1× 64-bitové CPU a 4× CLA"],
+  "Je to dvojjadrový signálový mikrokontrolér od Texas Instruments.");
+S(1, "Mikrokontrolér", "Aká je maximálna pracovná frekvencia mikrokontroléra TMS320F2837xD?", "200 MHz", ["50 MHz", "100 MHz", "400 MHz", "1 GHz"],
+  "TMS320F2837xD pracuje s taktom max. 200 MHz.");
+S(1, "Mikrokontrolér", "Aké napájacie napätia používa TMS320F2837xD?", "3,3 V pre vstupy/výstupy a 1,2 V pre logické obvody", ["5 V pre I/O a 3,3 V pre logiku", "12 V pre I/O a 5 V pre logiku", "1,2 V pre I/O a 3,3 V pre logiku", "iba 24 V"],
+  "I/O sú napájané 3,3 V, jadro (logika) 1,2 V.");
+S(1, "Mikrokontrolér", "Aký typ aritmetiky podporuje CPU mikrokontroléra TMS320F2837xD?", "plávajúcu desatinnú čiarku (floating point)", ["iba celé čísla", "iba pevnú desatinnú čiarku", "iba 8-bitové čísla", "iba binárne kódovanie BCD"],
+  "CPU s jednotkou pre plávajúcu desatinnú čiarku.");
+S(1, "Mikrokontrolér", "Koľko individuálne programovateľných a multiplexovaných GPIO má TMS320F2837xD?", "až 169", ["až 16", "až 32", "až 100", "až 512"],
+  "GPIO sú rozdelené do portov po 32 pinoch.");
+S(1, "Mikrokontrolér", "Koľko AD prevodníkov má TMS320F2837xD a aké majú rozlíšenie?", "4× ADC, 16 bitov (diferenciálne) alebo 12 bitov (single-ended)", ["1× ADC, 8 bitov", "2× ADC, vždy 10 bitov", "8× ADC, vždy 16 bitov", "4× ADC, vždy 12 bitov"],
+  "Nastaviteľné: 16 bitov pre diferenciálne vstupy alebo 12 bitov pre single-ended vstupy.");
+S(1, "Mikrokontrolér", "Koľko PWM modulov s dvoma výstupmi má TMS320F2837xD?", "12", ["4", "6", "16", "32"],
+  "Z toho 8 modulov umožňuje PWM s vysokým rozlíšením.");
+S(1, "Mikrokontrolér", "Koľko modulov CAP (zachytenie hrany) a QEP (inkrementálne snímače) má TMS320F2837xD?", "6× CAP a 3× QEP", ["3× CAP a 6× QEP", "12× CAP a 12× QEP", "2× CAP a 2× QEP", "1× CAP a 1× QEP"],
+  "6 modulov eCAP a 3 moduly eQEP.");
+M(1, "Mikrokontrolér", "Ktoré komunikačné rozhrania má TMS320F2837xD?", ["USB", "CAN", "SPI", "SCI (UART)"], ["Ethernet 10 Gb/s", "HDMI", "Bluetooth", "PCI Express"],
+  "Okrem nich aj uPP, McBSP a I2C.");
+S(1, "Mikrokontrolér", "Koľko komunikačných rozhraní SCI (UART) má TMS320F2837xD?", "4", ["1", "2", "8", "12"], "K dispozícii sú 4× SCI (UART), 3× SPI, 2× CAN, 2× I2C.");
+S(1, "Pamäť", "Ktorá z pamätí mikrokontroléra TMS320F2837xD je rýchla a po vypnutí napájania stratí obsah?", "RAM", ["FLASH", "registre CpuSysRegs", "ROM", "EEPROM"],
+  "RAM je rýchla, relatívne malá, znesie veľmi veľa prepisov, ale je nestála.");
+S(1, "Pamäť", "Ktorá pamäť je pomalšia, väčšia, trvalá a má menej možných prepisov?", "FLASH", ["RAM", "registre", "vyrovnávacia pamäť CPU", "zásobník"],
+  "FLASH uchová obsah aj po vypnutí napájania.");
+S(1, "Pamäť", "Čo je to linkovanie pamäte?", "priradenie častí kódu a premenných na definované pamäťové miesta", ["prekladanie zdrojového kódu do strojového kódu", "prepojenie dvoch mikrokontrolérov káblom", "nahrávanie programu cez USB", "mazanie obsahu pamäte FLASH"],
+  "Priradenie je dané linkovacím súborom (.cmd), ktorý delí pamäť na bloky a programové sekcie do nich rozdeľuje.");
+S(1, "Pamäť", "Prečo je výhodné pri ladení nalinkovať celý program do RAM?", "viac možných prepisov a rýchlejšie nahrávanie programu", ["program sa zachová po vypnutí napájania", "RAM je väčšia ako FLASH", "program beží pomalšie, takže sa ľahšie ladí", "nie je potrebný linkovací súbor"],
+  "Pre RAM slúži napr. linkovací súbor 2837xD_RAM_lnk_cpu1.cmd.");
+S(1, "Pamäť", "Čo určuje, ako sa programové sekcie rozdelia do pamäťových blokov?", "linkovací súbor (.cmd)", ["hlavičkový súbor registrov", "súbor main.c", "nastavenie PLL", "register GPxDIR"],
+  "Linkovací súbor rozdeľuje pamäť na bloky podľa manuálu MCU.");
+
+S(1, "Registre", "Čo je to register mikrokontroléra?", "pamäťové miesto s konkrétnou adresou, ktorého hodnota ovplyvňuje správanie MCU a periférií", ["časť pamäte FLASH, kde je uložený program", "premenná v pamäti RAM", "názov súboru s kódom", "zásobník volaní funkcií"],
+  "Pamäťové miesto registrov nie je súčasťou RAM ani FLASH.");
+TF(1, "Registre", "Pamäťové miesto registrov je súčasťou pamäte RAM.", false,
+  "Registre sú samostatné pamäťové miesta – nie sú súčasťou RAM ani FLASH.");
+TF(1, "Registre", "Aj zmena jediného bitu registra môže vyvolať akciu alebo odozvu mikrokontroléra.", true,
+  "Hodnota registra priamo ovplyvňuje správanie MCU a periférií.");
+S(1, "Registre", "Ako sa v programe symbolicky pristupuje k registrom?", "cez globálne premenné z hlavičkových súborov, ktoré sú linkovaním mapované na presné miesto", ["priamo cez čísla riadkov v súbore .c", "len cez assembler", "cez názvy súborov na disku", "cez systémové volania operačného systému"],
+  "Hlavičkové súbory rozdeľujú registre do skupín podľa periférie.");
+S(1, "Registre", "Ako sa pristupuje k celému registru naraz (napr. pre časovač CPU)?", "CpuTimer0Regs.TPR.all", ["CpuTimer0Regs.TPR.bit.all()", "CpuTimer0Regs->TPR[]", "CpuTimer0Regs::TPR", "&CpuTimer0Regs.bit"],
+  "Prístup k celému registru: .all, k bitovým poliam: .bit.NAZOV.");
+S(1, "Registre", "Ako sa pristupuje k bitovému poľu registra, napr. TDDR časovača 0?", "CpuTimer0Regs.TPR.bit.TDDR", ["CpuTimer0Regs.TPR.all.TDDR", "CpuTimer0Regs.TDDR.TPR", "CpuTimer0Regs->bit.TDDR.all", "TDDR(CpuTimer0Regs.TPR)"],
+  "Bitové polia sa čítajú/zapisujú cez .bit.");
+S(1, "Hodiny", "Čo je hodinový signál?", "povel, kedy sa má vykonať požadovaná strojová inštrukcia", ["pomenovanie funkcie main()", "napájacie napätie jadra", "názov registra časovača", "príkaz jazyka C"],
+  "Strojová inštrukcia nie je inštrukcia v jazyku C.");
+S(1, "Hodiny", "Čo sa používa na úpravu (zvýšenie/zníženie) frekvencie základného hodinového signálu?", "násobička PLL a deličky", ["iba watchdog", "iba kondenzátor", "pamäť FLASH", "ADC"],
+  "Signál z oscilátora alebo externého zdroja sa interne upravuje násobičkou PLL a deličkami.");
+S(1, "Hodiny", "Ako sa nazýva hodinový signál privedený po úprave do CPU a periférií?", "systémové hodiny (system clocks)", ["referenčný signál", "bezpečnostný signál", "synchronizačný signál SYNC", "signál WDT"],
+  "Základný signál generuje oscilátor alebo ho možno priviesť z externého zdroja.");
+S(1, "Hodiny", "Ktoré registre povoľujú/zakazujú hodinový signál do jednotlivých periférií?", "CpuSysRegs.PCLKCRx", ["GpioCtrlRegs.GPxDIR", "ClkCfgRegs.SYSPLLMULT", "GpioDataRegs.GPxSET", "AdcaRegs.ADCCTL1"],
+  "Pred každou perifériou je prepínač, ktorý hodinový signál povoľuje alebo zakazuje.");
+TF(1, "Hodiny", "Periféria, ktorá nie je časovaná (nemá privedené hodiny), pracuje normálne.", false,
+  "Periféria bez hodinového signálu nepracuje!");
+S(1, "Hodiny", "Ktoré bitové pole registra sa podľa prednášky používa pre násobičku PLL?", "ClkCfgRegs.SYSPLLMULT.bit.IMULT", ["CpuTimer0Regs.TPR.bit.TDDR", "SpiaRegs.SPICTL.bit.CLK_PHASE", "GpioCtrlRegs.GPADIR.all", "AdcaRegs.ADCCTL1.bit.ADCPWDNZ"],
+  "IMULT je celočíselná násobiaca konštanta PLL v ClkCfgRegs.SYSPLLMULT.");
+
+S(1, "GPIO", "Čo je GPIO?", "všeobecný digitálny vstup/výstup, riadený programovo alebo zvolenou perifériou", ["analógový vstup s 12-bitovým prevodníkom", "iba výstup pre PWM", "pamäťový blok FLASH", "komunikačný protokol"],
+  "GPIO = General Purpose Input Output.");
+S(1, "GPIO", "Ako sa nazýva možnosť priradiť pinu GPIO rôzne periférie?", "multiplexing", ["pull-up", "kvalifikácia vstupu", "linkovanie", "toggle"],
+  "Pri TMS320F2837xD je možné vyberať až z 8 možností na jeden GPIO.");
+S(1, "GPIO", "Z koľkých možností funkcií na jeden pin je teoreticky možné vyberať pri TMS320F2837xD?", "až 8", ["2", "4", "16", "32"],
+  "Funkcia pinu sa volí registrami GPxGMUXn a GPxMUXn.");
+S(1, "GPIO", "Z koľkých pinov sa skladá jeden port GPIO (A, B, C…)?", "32", ["8", "16", "64", "169"],
+  "Porty A, B, C, D, E majú po 32 pinov.");
+G(1, "GPIO", "single", () => {
+  const pin = R(0, 159), L = "ABCDE";
+  const ok = L[Math.floor(pin / 32)];
+  const options = shuffle(L.split("")).slice(0, 5).map((x) => "Port " + x);
+  return { text: `Do ktorého portu patrí pin GPIO${pin}? (porty po 32 pinoch)`, options, correct: options.indexOf("Port " + ok),
+    expl: `Port = pin ÷ 32 (celočíselne): ${pin} ÷ 32 = ${Math.floor(pin / 32)} → Port ${ok} (A = 0–31, B = 32–63, C = 64–95, D = 96–127, E = 128–159).` };
+});
+G(1, "GPIO", "single", () => {
+  const regs = [["GPxGMUXn / GPxMUXn", "funkcia pinu (GPIO alebo periféria)"], ["GPxDIR", "smer pinu (vstup / výstup)"], ["GPxPUD", "pull-up rezistor zapnutý / vypnutý"], ["GPxQSELn", "kvalifikácia (vyhodnotenie) vstupu"]];
+  const r = pick(regs);
+  const options = shuffle(regs.map((x) => x[0]));
+  return { text: `Ktorým registrom sa nastavuje: <b>${r[1]}</b>?`, options, correct: options.indexOf(r[0]),
+    expl: "GPxMUX – funkcia, GPxDIR – smer, GPxPUD – pull-up, GPxQSELn – kvalifikácia vstupu. Sú v skupine GpioCtrlRegs." };
+});
+S(1, "GPIO", "Ktorý register určuje smer GPIO (vstup alebo výstup)?", "GPxDIR", ["GPxPUD", "GPxDAT", "GPxSET", "GPxQSELn"],
+  "GPxDIR – direction; 1 = výstup, 0 = vstup.");
+S(1, "GPIO", "Ktorý register zapína alebo vypína pull-up rezistor pinu GPIO?", "GPxPUD", ["GPxDIR", "GPxDAT", "GPxTOGGLE", "GPxMUXn"],
+  "PUD = pull-up disable.");
+S(1, "GPIO", "Ktorý register zodpovedá za kvalifikáciu (vyhodnotenie) vstupu GPIO?", "GPxQSELn", ["GPxDIR", "GPxPUD", "GPxCLEAR", "GPxMUXn"],
+  "Kvalifikácia filtruje krátke rušivé impulzy (napr. na 6 vzoriek).");
+S(1, "GPIO", "Ktorý register sa používa na prečítanie hodnoty vstupu GPIO?", "GPxDAT", ["GPxSET", "GPxCLEAR", "GPxDIR", "GPxPUD"],
+  "Registre dátových operácií (GPxDAT, SET, CLEAR, TOGGLE) sú v skupine GpioDataRegs.");
+S(1, "GPIO", "Ktorý register nastaví výstup GPIO na logickú 1?", "GPxSET", ["GPxCLEAR", "GPxTOGGLE", "GPxDAT", "GPxDIR"],
+  "SET → log. 1, CLEAR → log. 0, TOGGLE → opačná hodnota.");
+S(1, "GPIO", "Ktorý register nastaví výstup GPIO na logickú 0?", "GPxCLEAR", ["GPxSET", "GPxTOGGLE", "GPxDIR", "GPxPUD"],
+  "SET → 1, CLEAR → 0, TOGGLE → negácia.");
+S(1, "GPIO", "Čo urobí zápis do registra GPxTOGGLE?", "prepne výstup na opačnú hodnotu", ["nastaví výstup na log. 1", "nastaví výstup na log. 0", "zmení smer pinu", "vypne pull-up"],
+  "Do registrov SET/CLEAR/TOGGLE má zmysel zapisovať len hodnotu 1; zápis 0 nemá význam.");
+TF(1, "GPIO", "Do registrov GPxSET, GPxCLEAR a GPxTOGGLE sa zapisuje hodnota 1; zápis hodnoty 0 nemá žiadny význam.", true,
+  "Zápis 1 vyvolá akciu pre daný pin, zápis 0 pin nezmení.");
+S(1, "GPIO", "Čo znamená, že registre GpioCtrlRegs sú „EALLOW protected“?", "sú chránené proti nechcenému prepisu a pred zápisom je potrebné povoliť prístup (EALLOW)", ["možno ich iba čítať", "sú uložené vo FLASH", "sú dostupné iba z jadra CLA", "fungujú iba pri vypnutých hodinách"],
+  "EALLOW povoľuje zápis do chránených registrov, EDIS ho opäť zakáže.");
+S(1, "GPIO", "V ktorej skupine registrov sú GPxDAT, GPxSET, GPxCLEAR a GPxTOGGLE?", "GpioDataRegs", ["GpioCtrlRegs", "CpuSysRegs", "ClkCfgRegs", "EPwm1Regs"],
+  "Konfiguračné registre (MUX, DIR, PUD, QSEL) sú v GpioCtrlRegs, dátové v GpioDataRegs.");
+S(1, "GPIO", "V ktorej skupine registrov sú konfiguračné registre GPIO (GPxMUXn, GPxDIR, GPxPUD, GPxQSELn)?", "GpioCtrlRegs", ["GpioDataRegs", "CpuSysRegs", "AdcaRegs", "PieCtrlRegs"],
+  "Sú EALLOW protected.");
+TF(1, "GPIO", "V označení registrov GPxDIR znamená „x“ číslo pinu.", false,
+  "x je písmeno portu (A, B, C…), n je poradie registra.");
+O(1, "GPIO", "Zoraďte kroky nastavenia GPIO pinu ako programovo riadeného výstupu.",
+  ["povoliť zápis do chránených registrov (EALLOW)", "nastaviť funkciu pinu na všeobecný I/O (GPxMUX)", "nastaviť smer pinu na výstup (GPxDIR)", "zapísať hodnotu na výstup (GPxSET / GPxCLEAR)"],
+  "Najprv sa povolí zápis a nastaví funkcia a smer pinu, až potom možno zapisovať na výstup.");
+P(1, "GPIO", "Priraďte registre GPIO k ich úlohe.", [
+  ["GPxDIR", "smer pinu"], ["GPxPUD", "pull-up rezistor"], ["GPxQSELn", "kvalifikácia vstupu"], ["GPxDAT", "čítanie vstupu"], ["GPxSET", "nastavenie výstupu na 1"], ["GPxCLEAR", "nastavenie výstupu na 0"]],
+  "Konfigurácia je v GpioCtrlRegs, práca s hodnotami v GpioDataRegs.");
+P(1, "Registre", "Priraďte oblasť k jej charakteristike.", [
+  ["RAM", "rýchla, nestála"], ["FLASH", "trvalá, menej prepisov"], ["Linkovací súbor", "rozdeľuje sekcie do pamäťových blokov"], ["Hlavičkový súbor", "mapuje registre na globálne premenné"]],
+  "RAM a FLASH sú pamäte, registre nie sú súčasťou ani jednej z nich.");
+G(1, "GPIO", "select", () => {
+  const pin = pick([5, 17, 20, 31]);
+  const code = `EALLOW;\nGpioCtrlRegs.GPAMUX2.bit.GPIO${pin} = {{0}};\nGpioCtrlRegs.GPADIR.bit.GPIO${pin} = {{1}};\nGpioDataRegs.GPASET.bit.GPIO${pin} = {{2}};\nEDIS;`;
+  return {
+    text: `Doplňte nastavenie pinu GPIO${pin} ako programovo riadeného <b>výstupu</b>, ktorý sa nastaví na log. 1.<pre>${code}</pre>`,
+    blanks: [{ opts: ["0", "1", "2", "3"], ans: "0" }, { opts: ["0", "1"], ans: "1" }, { opts: ["0", "1"], ans: "1" }],
+    expl: "MUX = 0 → všeobecný GPIO; DIR = 1 → výstup; zápisom 1 do GPASET sa výstup nastaví na log. 1.",
+  };
+});
+
+/* =====================================================================
    PREDNÁŠKA 2 – prerušenia, PIE, časovače
    ===================================================================== */
 S(2, "Prerušenia", "Čo je to prerušenie (interrupt)?",
@@ -100,8 +286,7 @@ TF(2, "Prerušenia", "V CCStudiu sa pri skoku do ISR automaticky uložia pomocn�
   "Príznaky periférie a PIE však treba vyčistiť v ISR ručne.");
 TF(2, "Prerušenia", "Príznaky prerušenia na úrovni periférie a PIE netreba čistiť, CCStudio ich vyčistí automaticky.", false,
   "Automaticky sa čistia len príznaky na úrovni CPU.");
-T(2, "Prerušenia", "Aké kľúčové slovo musí byť uvedené na začiatku hlavičky obslužnej funkcie prerušenia? (jedno slovo)", ["interrupt"],
-  "Napr. <code>interrupt void timer0_isr(void)</code>.");
+S(2, "Prerušenia", "Aké kľúčové slovo musí byť uvedené na začiatku hlavičky obslužnej funkcie prerušenia? (jedno slovo)", "interrupt", ["static", "inline", "volatile", "void main"], "Napr. <code>interrupt void timer0_isr(void)</code>.");
 O(2, "Prerušenia", "Zoraďte kroky inicializácie prerušenia od časovača (TIMER0) do správneho poradia.",
   ["Globálne zakázať prerušenia", "Zapnúť PIE", "Nastaviť smerník pre obslužnú funkciu", "Povoliť prerušenie v PIE", "Globálne povoliť prerušenia", "Povoliť prerušenie v časovači"]);
 O(2, "Prerušenia", "Zoraďte kroky v obslužnej funkcii prerušenia (ktorá len prepne výstup GPIO31).",
@@ -127,10 +312,8 @@ S(2, "Časovače", "Akú deličku má každý z časovačov CpuTimerx v TMS320F2
 TF(2, "Časovače", "Časovače CpuTimerx sa používajú na generovanie PWM signálu.", false,
   "CpuTimerx sú len časovače; PWM generuje periféria ePWM.");
 TF(2, "Časovače", "Časovače CpuTimerx v TMS320F2837xD sú dekrementujúce.", true);
-T(2, "Časovače", "Ktorý bit slúži na zastavenie/spustenie časovača CPU? (názov bitu)", ["TSS", "tss"],
-  "Zastavenie/spustenie – bit TSS; reset (reload) – bit TRB.");
-T(2, "Časovače", "Ktorý bit slúži na reset (reload) časovača CPU? (názov bitu)", ["TRB"],
-  "Zastavenie/spustenie – bit TSS; reset – bit TRB.");
+S(2, "Časovače", "Ktorý bit slúži na zastavenie/spustenie časovača CPU?", "TSS", ["TRB", "TIE", "TIF"], "Zastavenie/spustenie – bit TSS; reset (reload) – bit TRB.");
+S(2, "Časovače", "Ktorý bit slúži na reset (reload) časovača CPU?", "TRB", ["TSS", "TIE", "TIF"], "Zastavenie/spustenie – bit TSS; reset – bit TRB.");
 S(2, "Časovače", "Ako možno z časovača získať PWM podľa prednášky?",
   "porovnávaním hodnoty časovača s premennou a prepínaním výstupu pri zhode/pretečení",
   ["delením frekvencie časovača desiatimi", "pripojením časovača priamo na ADC", "zapisovaním do registra IER v ISR", "použitím iba nemaskovateľného prerušenia"],
@@ -226,7 +409,7 @@ M(3, "Time-base", "Aké režimy počítania má časová základňa ePWM?",
   ["hore", "dole", "hore-dole", "čítač zastavený"], ["iba náhodný režim", "iba cyklický režim cez GPIO", "diferenciálny režim"]);
 S(3, "Time-base", "Aké je maximálne delenie deličky CLKDIV v časovej základni ePWM?", "/128", ["/14", "/16", "/64", "/1024"]);
 S(3, "Time-base", "Aké je maximálne delenie deličky HSPCLKDIV v časovej základni ePWM?", "/14", ["/128", "/16", "/8", "/64"]);
-T(3, "Time-base", "Ako sa volá register, ktorý určuje maximálnu hodnotu (periódu) časovej základne ePWM? (názov registra)", ["TBPRD", "PRD"]);
+S(3, "Time-base", "Ako sa volá register, ktorý určuje maximálnu hodnotu (periódu) časovej základne ePWM?", "TBPRD", ["TBCTR", "TBCTL", "CMPA"]);
 M(3, "Time-base", "Ktoré udalosti generuje časová základňa ePWM?",
   ["čítač = 0 (CTR = 0)", "čítač = perióda (CTR = PRD)"], ["čítač = CMPA pri počítaní dole", "zhoda s QPOSMAX", "koniec AD konverzie", "pretečenie watchdogu"],
   "Zhody s CMPA/CMPB generuje komparačný submodul.");
@@ -235,7 +418,7 @@ M(3, "Time-base", "Kedy môže časová základňa vyslať signál pre synchroni
 TF(3, "Time-base", "Synchronizácia časových základní medzi PWM modulmi môže prebiehať len v rámci synchronizačnej schémy.", true);
 O(3, "Time-base", "Zoraďte kroky synchronizácie hodinových signálov TBCLK medzi PWM modulmi.",
   ["Povoliť hodiny do požadovaných PWM modulov (PCLKCR2)", "Nastaviť PCLKCR2.TBCLKSYNC = 0", "Nastaviť časové základne PWM modulov", "Nastaviť PCLKCR2.TBCLKSYNC = 1"]);
-T(3, "Time-base", "Ktorý bit registra PCLKCR2 sa pri synchronizácii časových základní najprv nuluje a po nastavení modulov nastaví na 1?", ["TBCLKSYNC"]);
+S(3, "Time-base", "Ktorý bit registra PCLKCR2 sa pri synchronizácii časových základní najprv nuluje a po nastavení modulov nastaví na 1?", "TBCLKSYNC", ["TBCTL", "SWFSYNC", "CLKDIV"]);
 S(3, "Time-base", "Čo je výstupom Time-base submodulu pre synchronizáciu viacerých PWM modulov?", "signál EPWMxSYNC", ["signál EPWMxA", "signál ADCSOCA", "signál TZ1", "signál QEPxI"]);
 
 // -- f_TBCLK
@@ -422,7 +605,7 @@ M(4, "PWM chopper", "Čo je možné v module PWM chopper nastaviť?",
   ["nosnú („chopping“) frekvenciu", "šírku prvého impulzu", "šírku ostatných impulzov"], ["bezpečnostnú medzeru v 14 bitoch", "mapovanie na PIE", "počet konverzií v burst móde"]);
 S(4, "PWM chopper", "Pri prenose riadiacich signálov pre tranzistory cez čo sa používa PWM chopper?",
   "impulzové transformátory", ["optické vlákna", "SPI zbernicu", "kryštálový oscilátor", "DMA radič"]);
-T(4, "Trip-zone", "Ktorý submodul umožňuje PWM modulu reagovať na chybové stavy riadeného hardvéru (napr. nadprúd)? (anglický názov)", ["trip-zone", "tripzone", "trip zone", "tz"]);
+S(4, "Trip-zone", "Ktorý submodul umožňuje PWM modulu reagovať na chybové stavy riadeného hardvéru (napr. nadprúd)?", "Trip-zone", ["Dead-band", "Chopper", "Event-trigger"]);
 P(4, "Trip-zone", "Priraďte signál trip-zone k jeho zdroju.", [
   ["TZ1 – TZ3", "signály na digitálnom vstupe z externého snímača/zariadenia"],
   ["TZ4", "chyba vyhodnotenia snímača z modulu eQEP"],
@@ -440,7 +623,7 @@ S(4, "Trip-zone", "Pre čo sa používa cycle-by-cycle (CBC) reakcia trip-zone?"
 TF(4, "Trip-zone", "Pri one-shot reakcii trip-zone je potrebné chybu resetovať manuálne.", true);
 TF(4, "Trip-zone", "Pri cycle-by-cycle reakcii trip-zone je potrebné chybu resetovať manuálne.", false,
   "CBC sa resetuje automaticky v každej perióde PWM, ak chybový signál nie je prítomný.");
-T(4, "Trip-zone", "Ako sa nazýva reakcia trip-zone, ktorá sa automaticky resetuje v každej perióde PWM? (skratka alebo anglický názov)", ["cbc", "cycle-by-cycle", "cyclebycycle", "cycle by cycle"]);
+S(4, "Trip-zone", "Ako sa nazýva reakcia trip-zone, ktorá sa automaticky resetuje v každej perióde PWM?", "cycle-by-cycle (CBC)", ["one-shot (OSHT)", "force (FRC)", "direct-drive"]);
 M(4, "Trip-zone", "Čo podporuje submodul Trip-zone?",
   ["jednorázovú (one-shot) akciu", "opakovanú cycle-by-cycle reakciu", "vyvolanie prerušenia", "softvérové vyvolanie chybového stavu pre testovanie"],
   ["generovanie nosnej frekvencie", "meranie času medzi impulzmi", "reálnu kalibráciu ADC"]);
@@ -516,9 +699,9 @@ P(5, "SOC", "Priraďte nastavenie bloku SOC k jeho významu.", [
   ["ADCSOCyCTL.bit.TRIGSEL", "udalosť, ktorá spustí prevod"],
   ["ADCRESULTx", "výsledkový register bloku SOCx"],
 ]);
-T(5, "SOC", "Ktorý bit (pole) registra ADCSOCyCTL určuje veľkosť vzorkovacieho okna? (názov poľa)", ["ACQPS"]);
-T(5, "SOC", "Ktorý bit (pole) registra ADCSOCyCTL určuje udalosť, ktorá spustí prevod? (názov poľa)", ["TRIGSEL"]);
-T(5, "SOC", "Ktorý bit (pole) registra ADCSOCyCTL vyberá snímaný kanál? (názov poľa)", ["CHSEL"]);
+S(5, "SOC", "Ktorý bit (pole) registra ADCSOCyCTL určuje veľkosť vzorkovacieho okna?", "ACQPS", ["CHSEL", "TRIGSEL", "ADCPWDNZ"]);
+S(5, "SOC", "Ktorý bit (pole) registra ADCSOCyCTL určuje udalosť, ktorá spustí prevod?", "TRIGSEL", ["ACQPS", "CHSEL", "ADCPWDNZ"]);
+S(5, "SOC", "Ktorý bit (pole) registra ADCSOCyCTL vyberá snímaný kanál?", "CHSEL", ["ACQPS", "TRIGSEL", "ADCPWDNZ"]);
 S(5, "SOC", "Ako sa vykonajú viaceré SOC bloky spustené jednou udalosťou?",
   "postupne podľa kruhovej priority", ["súčasne všetky naraz", "náhodne", "vždy len SOC0", "podľa abecedy názvov kanálov"]);
 M(5, "SOC", "Ktoré udalosti môžu spustiť AD prevod (SOCx)?",
@@ -540,11 +723,11 @@ M(5, "Burst mode", "Čo platí pre burst mód AD prevodníka?",
 S(5, "ADC prerušenia", "Čo znamená signál EOC vysielaný SOC blokom?", "end of conversion – môže vyvolať prerušenie", ["end of clock", "enable output control", "error on channel", "edge of counter"]);
 S(5, "ADC prerušenia", "Kedy môže byť vyslaný signál EOC?", "po navzorkovaní napätia alebo po celej konverzii", ["iba po celej konverzii", "iba po navzorkovaní", "iba po resete", "iba pri chybe"]);
 S(5, "ADC prerušenia", "Koľko nastaviteľných prerušení má každý AD prevodník?", "4 (INT1 až INT4)", ["1", "2", "8", "16"]);
-T(5, "ADC prerušenia", "Ktorý register slúži na nastavenie prerušení INT3 a INT4 AD prevodníka?", ["ADCINTSEL3N4"]);
-T(5, "ADC prerušenia", "Ktorý register slúži na nastavenie prerušení INT1 a INT2 AD prevodníka?", ["ADCINTSEL1N2"]);
+S(5, "ADC prerušenia", "Ktorý register slúži na nastavenie prerušení INT3 a INT4 AD prevodníka?", "ADCINTSEL3N4", ["ADCINTSEL1N2", "ADCINTFLG", "ADCINTCTL"]);
+S(5, "ADC prerušenia", "Ktorý register slúži na nastavenie prerušení INT1 a INT2 AD prevodníka?", "ADCINTSEL1N2", ["ADCINTSEL3N4", "ADCINTFLG", "ADCINTCTL"]);
 O(5, "Zapnutie ADC", "Zoraďte postup zapnutia AD prevodníka.",
   ["Zapnúť hodiny do zvoleného AD prevodníka", "Nastaviť deličky hodín", "Nastaviť bit ADCPWDNZ do log. 1", "Počkať aspoň 500 µs pred prvou konverziou"]);
-T(5, "Zapnutie ADC", "Ktorým bitom registra ADCCTL1 sa AD prevodník zapína? (názov bitu)", ["ADCPWDNZ"]);
+S(5, "Zapnutie ADC", "Ktorým bitom registra ADCCTL1 sa AD prevodník zapína?", "ADCPWDNZ", ["ADCBSY", "INTPULSEPOS", "ADCEN"]);
 N(5, "Zapnutie ADC", "Aspoň ako dlho je potrebné čakať po zapnutí AD prevodníka pred prvou konverziou? Výsledok uveďte v µs.", 500, 0, "µs");
 S(5, "Kalibrácia", "Čo sa kalibruje v AD prevodníku počas výrobného procesu?",
   "zisk, offset a linearita", ["iba frekvencia hodín", "iba referencia VREFHI", "iba rozlíšenie", "iba vzorkovacie okno"]);
@@ -667,8 +850,8 @@ S(6, "eQEP", "Akú šírku má čítač polohy v module eQEP (Position counter a
 M(6, "eQEP", "Kedy sa môže čítač polohy resetovať?",
   ["pri každom zachytení nulovej značky", "pri prvom zachytení nulovej značky", "pri dosiahnutí maximálnej polohy (QPOSMAX)", "po uplynutí stanoveného času"],
   ["pri každom čítaní registra QFLG", "pri zmene frekvencie PWM", "pri zapnutí AD prevodníka"]);
-T(6, "eQEP", "Ako sa volá register, ktorý určuje maximálnu polohu čítača eQEP? (názov registra)", ["QPOSMAX"]);
-T(6, "eQEP", "Z ktorého registra sa do čítača polohy skopíruje inicializačná hodnota? (názov registra)", ["QPOSINIT"]);
+S(6, "eQEP", "Ako sa volá register, ktorý určuje maximálnu polohu čítača eQEP?", "QPOSMAX", ["QPOSINIT", "QPOSCNT", "QPOSCMP"]);
+S(6, "eQEP", "Z ktorého registra sa do čítača polohy skopíruje inicializačná hodnota?", "QPOSINIT", ["QPOSMAX", "QPOSCNT", "QPOSLAT"]);
 M(6, "eQEP", "Kedy môže nastať inicializácia čítača polohy hodnotou z QPOSINIT?",
   ["pri zachytení nulovej značky", "pri externom signáli", "softvérovo nastavením bitu SWI"], ["pri každom prerušení ADC", "pri zmene deličky CLKDIV", "pri signáli TZ5"]);
 S(6, "eQEP", "Na čo slúži Capture unit (QCAP) v module eQEP?",

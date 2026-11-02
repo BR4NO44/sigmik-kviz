@@ -3,7 +3,6 @@
 const $app = document.getElementById("app");
 const $timer = document.getElementById("timer");
 const COUNTS = [5, 10, 15, 20, 30, 40];
-const MIN_BOARD = 10; // do rebríčka sa zapisujú testy s aspoň touto dĺžkou
 const COUNT_KEY = "kviz-pocet";
 const TYPE_LABEL = {
   single: "Výber z možností (ABCD)", tf: "Pravda / Nepravda", multi: "Viac správnych odpovedí",
@@ -12,7 +11,7 @@ const TYPE_LABEL = {
 };
 const LETTERS = "abcdefgh";
 // cieľové zastúpenie typov v teste (súčet 20)
-const QUOTA = [["single", 5], ["multi", 2], ["tf", 2], ["num", 4], ["text", 2], ["select", 1], ["order", 1], ["match", 1], ["single", 1], ["num", 1]];
+const QUOTA = [["single", 5], ["multi", 2], ["tf", 2], ["num", 4], ["single", 2], ["select", 1], ["order", 1], ["match", 1], ["single", 1], ["num", 1]];
 
 let state = null;
 let tick = null;
@@ -185,47 +184,51 @@ function renderQuestion(q, idx, review) {
 }
 
 /* ------------------------------------------------------------------ obrazovky */
+const WAVE = '<svg class="wave" viewBox="0 0 560 120" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M0 90h60V30h80v60h80V30h80v60h80V30h80v60h100"/></svg>';
+
 function showStart() {
   stopTimer();
   state = null;
   $app.replaceChildren();
   const chosen = new Set(Object.keys(LECTURES).map(Number));
-  const card = el("div", { class: "card" });
-  card.append(el("h1", {}, "Generátor testu"),
-    el("p", { class: "muted" }, "Otázky sú vytvorené z prednášok 2–6 (prednáška 1 je vynechaná). Typy otázok sú inšpirované demo testom z Moodle: výber ABCD, viac správnych odpovedí, pravda/nepravda, číselné a slovné odpovede, dopĺňanie kódu cez rozbaľovacie polia, zoraďovanie a priraďovanie. Číselné otázky majú pri každom generovaní iné hodnoty."));
-  const lectures = el("div", {});
+  $app.append(el("section", { class: "hero rise", html:
+    '<div class="kicker">Signálové mikrokontroléry · TMS320F2837xD</div><h1>Over si, čo <em>vieš</em>.</h1>' + WAVE }));
+
+  const setup = el("div", { class: "card rise" });
+  const lectures = el("div", { class: "lecs" });
+  const start = el("button", { class: "primary go" }, "Vygenerovať test →");
   for (const [n, name] of Object.entries(LECTURES)) {
     const cnt = BANK.filter((d) => d.lec === +n).length;
-    const cb = el("input", { type: "checkbox", checked: true });
+    const cb = el("input", { type: "checkbox", checked: true, "aria-label": `Prednáška ${n}` });
     cb.addEventListener("change", () => { cb.checked ? chosen.add(+n) : chosen.delete(+n); start.disabled = chosen.size === 0; });
-    lectures.append(el("label", { class: "lec" }, cb, el("span", {}, el("b", {}, `Prednáška ${n}`), " – " + name, el("small", {}, `${cnt} typov otázok`))));
+    lectures.append(el("label", { class: "lec", title: name }, cb, el("span", { class: "n" }, n), el("span", { class: "c" }, `${cnt}`), el("span", { class: "t" }, name)));
   }
-  card.append(el("h2", {}, "Témy"), lectures);
-  const modes = el("div", { class: "modes" });
+  setup.append(el("div", { class: "field" }, el("h2", {}, "Prednášky"), lectures));
+
   const m1 = el("input", { type: "radio", name: "mode", value: "test", checked: true });
   const m2 = el("input", { type: "radio", name: "mode", value: "train" });
-  modes.append(
-    el("label", {}, m1, el("span", {}, el("b", {}, "Test"), " – vyhodnotenie až na konci (ako v Moodle), meria sa čas.")),
-    el("label", {}, m2, el("span", {}, el("b", {}, "Tréning"), " – po každej otázke môžeš hneď skontrolovať odpoveď a prečítať vysvetlenie."))
-  );
-  card.append(el("h2", {}, "Režim"), modes);
+  setup.append(el("div", { class: "field" }, el("h2", {}, "Režim"), el("div", { class: "seg" },
+    el("label", {}, m1, "Test", el("small", {}, "výsledok na konci")),
+    el("label", {}, m2, "Tréning", el("small", {}, "kontrola po otázke")))));
+
   let saved = 20;
   try { saved = +localStorage.getItem(COUNT_KEY) || 20; } catch (e) {}
-  const cnt = el("select", { id: "cnt", "aria-label": "Počet otázok" }, COUNTS.map((n) => el("option", { value: n, selected: n === saved }, `${n} otázok`)));
-  card.append(el("h2", {}, "Počet otázok"), el("div", { class: "line" }, cnt),
-    el("div", { class: "hint" }, `Do rebríčka sa zapisujú testy s aspoň ${MIN_BOARD} otázkami. Ak vybrané témy nemajú dosť otázok, test bude kratší.`));
-  const start = el("button", { class: "primary" }, "Vygenerovať test");
+  const counts = el("div", { class: "seg", role: "radiogroup", "aria-label": "Počet otázok" }, COUNTS.map((n) =>
+    el("label", {}, el("input", { type: "radio", name: "cnt", value: n, checked: n === saved }), String(n))));
+  setup.append(el("div", { class: "field" }, el("h2", {}, "Počet otázok"), counts));
+
   start.addEventListener("click", () => {
-    const n = +cnt.value;
+    const n = +counts.querySelector("input:checked").value;
     try { localStorage.setItem(COUNT_KEY, n); } catch (e) {}
     const qs = buildTest([...chosen], n);
     state = { qs, answers: qs.map(emptyAnswer), checked: qs.map(() => false), cur: 0, train: m2.checked, t0: Date.now(), done: false };
     startTimer();
     showQuiz();
   });
-  card.append(el("div", { class: "row", style: "margin-top:14px" }, start));
-  $app.append(card);
-  $app.append(boardCard());
+  setup.append(start);
+
+  const home = el("div", { class: "home" }, setup, boardCard());
+  $app.append(home);
 }
 
 function startTimer() {
@@ -252,7 +255,7 @@ function showQuiz() {
   const { qs, cur } = state;
   const q = qs[cur];
   $app.replaceChildren();
-  const nav = el("div", { class: "card nav" }, el("h2", {}, "Navigácia"));
+  const nav = el("div", { class: "card nav" }, el("h2", {}, "Otázky"));
   navEl = el("div", { class: "grid" }, qs.map((_, i) => el("button", { onclick: () => { state.cur = i; showQuiz(); }, "aria-label": "Otázka " + (i + 1) }, String(i + 1))));
   nav.append(navEl);
   nav.append(el("div", { class: "hint" }, `Zodpovedané: ${qs.filter((qq, i) => answered(qq, state.answers[i])).length} / ${qs.length}`));
@@ -260,13 +263,15 @@ function showQuiz() {
 
   const rev = state.train && state.checked[cur];
   const main = el("div", { class: "card" });
-  main.append(el("div", { class: "qhead" }, el("strong", {}, `Otázka ${cur + 1} z ${qs.length}`), el("span", {}, el("span", { class: "tag" }, TYPE_LABEL[q.type]), " ", el("span", { class: "tag" }, `Prednáška ${q.lec}`))));
+  main.append(el("div", { class: "qhead" }, el("div", { class: "qno" }, `Otázka ${cur + 1} `, el("span", {}, `/ ${qs.length}`)), el("span", {}, el("span", { class: "tag" }, TYPE_LABEL[q.type]), " ", el("span", { class: "tag" }, `Prednáška ${q.lec}`))));
   main.append(renderQuestion(q, cur, rev));
   const pager = el("div", { class: "pager" },
     el("button", { disabled: cur === 0, onclick: () => { state.cur--; showQuiz(); } }, "← Predchádzajúca"),
     state.train && !rev ? el("button", { onclick: () => { state.checked[cur] = true; showQuiz(); } }, "Skontrolovať") : null,
     cur < qs.length - 1 ? el("button", { class: "primary", onclick: () => { state.cur++; showQuiz(); } }, "Ďalšia →") : el("button", { class: "primary", onclick: finish }, "Skončiť test"));
   main.append(pager);
+  const done = qs.filter((qq, i) => answered(qq, state.answers[i])).length;
+  $app.append(el("div", { class: "progress", role: "progressbar", "aria-valuenow": done, "aria-valuemax": qs.length }, el("i", { style: `width:${(done / qs.length) * 100}%` })));
   $app.append(el("div", { class: "layout" }, nav, main));
   refreshNav();
   window.scrollTo({ top: 0 });
@@ -278,10 +283,10 @@ async function finish() {
   state.done = true;
   state.secs = Math.floor((Date.now() - state.t0) / 1000);
   stopTimer();
-  if (!state.train && state.qs.length >= MIN_BOARD) {
-    const sum = state.qs.reduce((x, q, i) => x + grade(q, state.answers[i]), 0);
-    state.submit = await submitScore(sum, state.secs, state.qs.length);
-  }
+  // do rebríčka sa ráta každá zodpovedaná otázka (aj z tréningu); správna = plný počet bodov
+  const given = state.qs.map((q, i) => (answered(q, state.answers[i]) ? grade(q, state.answers[i]) : null)).filter((x) => x !== null);
+  state.right = given.filter((x) => x >= 0.999).length;
+  if (given.length) state.submit = await submitScore(state.right, given.length);
   showResults();
 }
 
@@ -291,24 +296,29 @@ function showResults(onlyWrong = false) {
   const sum = scores.reduce((x, y) => x + y, 0);
   const pct = Math.round((sum / qs.length) * 100);
   $app.replaceChildren();
-  const head = el("div", { class: "card" },
-    el("h1", {}, "Výsledok testu"),
-    el("div", { class: "score" }, `${round(sum, 2).toString().replace(".", ",")} / ${qs.length} b. (${pct} %)`),
-    el("p", { class: "muted" }, `Čas: ${Math.floor(state.secs / 60)} min ${state.secs % 60} s · Plne správne: ${scores.filter((s) => s >= 0.999).length} · Čiastočne: ${scores.filter((s) => s > 0 && s < 0.999).length} · Nesprávne: ${scores.filter((s) => s === 0).length}`),
-    el("div", { class: "row" },
-      el("button", { class: "primary", onclick: showStart }, "Nový test"),
-      el("button", { onclick: () => showResults(!onlyWrong) }, onlyWrong ? "Zobraziť všetky otázky" : "Zobraziť len chybné")));
-  if (state.train) head.append(el("p", { class: "hint" }, "Tréning sa do rebríčka nezapisuje."));
-  else if (qs.length < MIN_BOARD) head.append(el("p", { class: "hint" }, `Do rebríčka sa zapisujú testy s aspoň ${MIN_BOARD} otázkami.`));
-  else if (state.submit && state.submit.improved) head.append(el("p", { class: "mark ok" }, "🏆 Nový najlepší výsledok uložený do rebríčka!"));
-  else if (state.submit) head.append(el("p", { class: "hint" }, "Tvoj najlepší výsledok v rebríčku je lepší – nezmenil sa."));
-  else head.append(el("p", { class: "hint" }, "Výsledok sa nepodarilo uložiť (server nie je dostupný)."));
+  const fmtN = (n) => round(n, 2).toString().replace(".", ",");
+  const stat = (v, l) => el("div", { class: "stat" }, el("b", {}, String(v)), l);
+  const head = el("div", { class: "card result rise" },
+    el("div", { class: "ring", style: `--p:${pct}` }, el("span", {}, pct + " %")),
+    el("div", {},
+      el("h1", {}, `${fmtN(sum)} / ${qs.length} b.`),
+      el("div", { class: "stats" },
+        stat(`${Math.floor(state.secs / 60)}:${String(state.secs % 60).padStart(2, "0")}`, "čas"),
+        stat(scores.filter((s) => s >= 0.999).length, "správne"),
+        stat(scores.filter((s) => s > 0 && s < 0.999).length, "čiastočne"),
+        stat(scores.filter((s) => s === 0).length, "nesprávne")),
+      state.submit
+        ? el("p", { class: "earned" }, `+${state.right} ${state.right === 1 ? "správna odpoveď" : state.right > 0 && state.right < 5 ? "správne odpovede" : "správnych odpovedí"} do rebríčka`)
+        : el("p", { class: "hint" }, "Body sa nepodarilo uložiť do rebríčka."),
+      el("div", { class: "row" },
+        el("button", { class: "primary", onclick: showStart }, "Nový test"),
+        el("button", { onclick: () => showResults(!onlyWrong) }, onlyWrong ? "Zobraziť všetky" : "Zobraziť len chybné"))));
   $app.append(head);
   $app.append(boardCard(state.submit && state.submit.board));
   qs.forEach((q, i) => {
     if (onlyWrong && scores[i] >= 0.999) return;
     const card = el("div", { class: "card res-item" });
-    card.append(el("div", { class: "qhead" }, el("strong", {}, `Otázka ${i + 1}`), el("span", {}, el("span", { class: "tag" }, TYPE_LABEL[q.type]), " ", el("span", { class: "tag" }, `Prednáška ${q.lec} · ${q.topic}`))));
+    card.append(el("div", { class: "qhead" }, el("div", { class: "qno" }, `Otázka ${i + 1}`), el("span", {}, el("span", { class: "tag" }, TYPE_LABEL[q.type]), " ", el("span", { class: "tag" }, `Prednáška ${q.lec} · ${q.topic}`))));
     state.cur = i;
     card.append(renderQuestion(q, i, true));
     $app.append(card);
@@ -321,15 +331,15 @@ const NAME_KEY = "kviz-meno";
 const getName = () => { try { return localStorage.getItem(NAME_KEY) || ""; } catch (e) { return ""; } };
 function updateWho() {
   const b = document.getElementById("who");
-  b.textContent = "👤 " + (getName() || "bez mena");
+  b.textContent = getName() || "bez mena";
   b.onclick = () => askName(false);
 }
 function askName(first) {
   const inp = el("input", { type: "text", maxlength: "20", value: getName(), placeholder: "Tvoje meno", "aria-label": "Meno" });
   const ok = el("button", { class: "primary" }, "Uložiť");
   const m = el("div", { class: "modal" }, el("div", { class: "card" },
-    el("h2", {}, first ? "Vitaj! Ako sa voláš?" : "Zmeniť meno"),
-    el("p", { class: "muted" }, "Meno sa zobrazí v rebríčku najlepších výsledkov."),
+    el("h1", {}, first ? "Ako sa voláš?" : "Zmeniť meno"),
+    el("p", { class: "muted" }, "Pod týmto menom sa ti budú počítať správne odpovede."),
     el("div", { class: "line" }, inp),
     el("div", { class: "row" }, ok, first ? null : el("button", { onclick: () => m.remove() }, "Zrušiť"))));
   const save = () => {
@@ -349,33 +359,44 @@ async function fetchBoard() {
   if (!r.ok) throw new Error();
   return r.json();
 }
-async function submitScore(score, secs, total) {
+async function submitScore(correct, answered) {
   try {
     const r = await fetch("/api/scores", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: getName() || "Anonym", score: round(score, 2), total, secs }) });
+      body: JSON.stringify({ name: getName() || "Anonym", correct, answered }) });
     if (!r.ok) throw new Error();
     return await r.json();
   } catch (e) { return null; }
 }
 function boardCard(rows) {
-  const card = el("div", { class: "card" }, el("h2", {}, "🏆 Rebríček najlepších"));
+  const card = el("div", { class: "card rise" }, el("h2", {}, "Rebríček · správne odpovede"));
   const body = el("div", {}, el("p", { class: "muted" }, "Načítavam…"));
   card.append(body);
   const draw = (list) => {
-    if (!list.length) { body.replaceChildren(el("p", { class: "muted" }, "Zatiaľ tu nikto nie je. Dokonči test a buď prvý!")); return; }
+    if (!list.length) { body.replaceChildren(el("p", { class: "muted" }, "Zatiaľ tu nikto nie je. Buď prvý!")); return; }
     const me = getName().toLowerCase();
-    const t = el("table", { class: "board" }, el("tr", {}, el("th", {}, "#"), el("th", {}, "Meno"), el("th", {}, "Body"), el("th", {}, "Čas")),
-      list.map((r, i) => el("tr", { class: r.name.toLowerCase() === me ? "me" : "" },
-        el("td", {}, String(i + 1)), el("td", {}, r.name),
-        el("td", {}, `${String(r.score).replace(".", ",")} / ${r.total} (${Math.round(r.pct * 100)} %)`),
-        el("td", {}, `${Math.floor(r.secs / 60)}:${String(r.secs % 60).padStart(2, "0")}`))));
-    body.replaceChildren(t, el("p", { class: "hint" }, `Poradie podľa percent úspešnosti (pri rovnosti rozhoduje čas). Zapisuje sa najlepší výsledok z režimu Test, min. ${MIN_BOARD} otázok.`));
+    const mine = list.find((r) => r.name.toLowerCase() === me);
+    const out = [];
+    if (mine) out.push(el("div", { class: "mine" }, el("b", {}, String(mine.correct)), `tvojich správnych odpovedí · ${Math.round(mine.pct * 100)} % úspešnosť`));
+    const medals = ["🥇", "🥈", "🥉"];
+    const top = list.slice(0, 3);
+    if (top.length >= 3) {
+      const pod = (r, k) => el("div", { class: "pod p" + (k + 1) }, el("div", { class: "medal" }, medals[k]), el("div", { class: "nm", title: r.name }, r.name), el("div", { class: "pt" }, String(r.correct), el("small", {}, "správnych")));
+      out.push(el("div", { class: "podium" }, pod(top[1], 1), pod(top[0], 0), pod(top[2], 2)));
+    }
+    const rest = top.length >= 3 ? list.slice(3) : list;
+    const off = top.length >= 3 ? 3 : 0;
+    if (rest.length) out.push(el("ol", { class: "lb", start: off + 1 }, rest.map((r, i) =>
+      el("li", { class: r.name.toLowerCase() === me ? "me" : "" },
+        el("span", { class: "rk" }, String(off + i + 1)), el("span", { class: "nm", title: r.name }, r.name),
+        el("span", { class: "pc" }, Math.round(r.pct * 100) + " %"), el("span", { class: "pt" }, String(r.correct))))));
+    body.replaceChildren(...out);
   };
   if (rows) draw(rows);
-  else fetchBoard().then(draw).catch(() => body.replaceChildren(el("p", { class: "muted" }, "Rebríček nie je dostupný (spusti stránku cez spusti.command).")));
+  else fetchBoard().then(draw).catch(() => body.replaceChildren(el("p", { class: "muted" }, "Rebríček nie je dostupný.")));
   return card;
 }
 
+document.getElementById("home").addEventListener("click", () => { if (!state || state.done || confirm("Ukončiť rozpracovaný test a vrátiť sa domov?")) showStart(); });
 updateWho();
 showStart();
 if (!getName()) askName(true);

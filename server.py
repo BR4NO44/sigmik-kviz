@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Jednoduchý server: servíruje kvíz a ukladá najlepšie výsledky do scores.json (bez databázy)."""
-import json, os, threading, time
+"""Jednoduchý server: servíruje kvíz a ráta správne odpovede na meno do scores.json (bez databázy)."""
+import json, os, threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -16,12 +16,13 @@ def load():
         return {}
 
 
-def valid(r):
-    return all(k in r for k in ("pct", "total", "score", "secs", "name"))
-
-
 def board(data):
-    rows = sorted((r for r in data.values() if valid(r)), key=lambda r: (-r["pct"], r["secs"]))
+    rows = []
+    for r in data.values():
+        if not all(k in r for k in ("name", "correct", "answered", "tests")):
+            continue
+        rows.append(dict(r, pct=(r["correct"] / r["answered"]) if r["answered"] else 0))
+    rows.sort(key=lambda r: (-r["correct"], -r["pct"]))
     return rows[:50]
 
 
@@ -53,25 +54,24 @@ class Handler(SimpleHTTPRequestHandler):
             n = int(self.headers.get("Content-Length", 0))
             d = json.loads(self.rfile.read(min(n, 4096)))
             name = str(d["name"]).strip()[:20]
-            score = round(float(d["score"]), 2)
-            secs = max(0, int(d["secs"]))
-            total = int(d["total"])
-            assert name and 10 <= total <= 100 and 0 <= score <= total
+            correct = int(d["correct"])
+            answered = int(d["answered"])
+            assert name and 1 <= answered <= 100 and 0 <= correct <= answered
         except Exception:
             return self._json({"error": "bad request"}, 400)
         key = name.lower()
         with LOCK:
             data = load()
-            old = data.get(key)
-            pct = score / total
-            improved = old is None or pct > old["pct"] or (pct == old["pct"] and secs < old["secs"])
-            if improved:
-                data[key] = {"name": name, "score": score, "total": total, "pct": pct, "secs": secs, "date": time.strftime("%Y-%m-%d %H:%M")}
-                tmp = FILE + ".tmp"
-                with open(tmp, "w", encoding="utf-8") as f:
-                    json.dump(data, f, ensure_ascii=False, indent=1)
-                os.replace(tmp, FILE)
-            return self._json({"improved": improved, "board": board(data)})
+            r = data.get(key)
+            if not (r and "correct" in r):
+                r = {"correct": 0, "answered": 0, "tests": 0}
+            r.update(name=name, correct=r["correct"] + correct, answered=r["answered"] + answered, tests=r["tests"] + 1)
+            data[key] = r
+            tmp = FILE + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=1)
+            os.replace(tmp, FILE)
+            return self._json({"board": board(data)})
 
 
 if __name__ == "__main__":
