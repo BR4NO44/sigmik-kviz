@@ -153,21 +153,27 @@ function renderQuestion(q, idx, review) {
   } else if (q.type === "order") {
     const n = q.items.length;
     const opts = Array.from({ length: n }, (_, i) => String(i + 1));
+    const t = el("table", { class: "qt" }, el("thead", {}, el("tr", {}, el("th", { class: "c-sel" }, "Poradie"), el("th", {}, "Krok"), review ? el("th", { class: "c-res" }, "") : null)));
+    const tb = el("tbody");
     q.shuf.forEach((pos, k) => {
       const s = el("select", { disabled: review, "aria-label": "Poradie" }, el("option", { value: "" }, "—"), opts.map((o) => el("option", { value: o, selected: a[k] === o }, o)));
       s.addEventListener("change", () => { state.answers[idx][k] = s.value; touch(); });
-      const line = el("div", { class: "line" }, s, el("span", {}, q.items[pos]));
-      if (review) { const ok = a[k] === String(pos + 1); line.append(el("span", { class: "mark " + (ok ? "ok" : "bad") }, ok ? "✓" : `✗ (správne: ${pos + 1}.)`)); }
-      box.append(line);
+      const tr = el("tr", {}, el("td", { class: "c-sel" }, s), el("td", {}, q.items[pos]));
+      if (review) { const ok = a[k] === String(pos + 1); tr.append(el("td", { class: "c-res " + (ok ? "ok" : "bad") }, ok ? "✓" : `✗ správne: ${pos + 1}.`)); }
+      tb.append(tr);
     });
+    t.append(tb); box.append(el("div", { class: "qt-wrap" }, t));
   } else if (q.type === "match") {
+    const t = el("table", { class: "qt" }, el("thead", {}, el("tr", {}, el("th", {}, "Pojem"), el("th", {}, "Priradenie"), review ? el("th", { class: "c-res" }, "") : null)));
+    const tb = el("tbody");
     q.pairs.forEach((p, i) => {
-      const s = el("select", { disabled: review, "aria-label": "Priradenie" }, el("option", { value: "" }, "—"), q.rights.map((o) => el("option", { value: o, selected: a[i] === o }, o)));
+      const s = el("select", { disabled: review, "aria-label": "Priradenie: " + p[0] }, el("option", { value: "" }, "— vyberte —"), q.rights.map((o) => el("option", { value: o, selected: a[i] === o }, o)));
       s.addEventListener("change", () => { state.answers[idx][i] = s.value; touch(); });
-      const line = el("div", { class: "line" }, el("b", {}, p[0]), el("span", {}, "→"), s);
-      if (review) { const ok = a[i] === p[1]; line.append(el("span", { class: "mark " + (ok ? "ok" : "bad") }, ok ? "✓" : `✗ (správne: ${p[1]})`)); }
-      box.append(line);
+      const tr = el("tr", {}, el("td", { class: "c-key" }, p[0]), el("td", {}, s));
+      if (review) { const ok = a[i] === p[1]; tr.append(el("td", { class: "c-res " + (ok ? "ok" : "bad") }, ok ? "✓" : `✗ správne: ${p[1]}`)); }
+      tb.append(tr);
     });
+    t.append(tb); box.append(el("div", { class: "qt-wrap" }, t));
   }
 
   if (review) {

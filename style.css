@@ -228,3 +228,46 @@ input[type="text"]:focus, select:focus { border-color: var(--accent); outline: n
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 @media (max-width: 560px) { .brand small { display: none; } .card { padding: 18px 16px; } .wave { display: none; } }
+
+/* ───────── tabuľky ───────── */
+.qt-wrap, .qtext table { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.qt-wrap { overflow-x: auto; margin: 4px 0 6px; }
+table.qt, .qtext table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: .93rem; }
+.qtext table { display: block; overflow-x: auto; width: 100%; font-weight: 400; margin: 12px 0; }
+.qtext table tbody, .qtext table thead { display: table; width: 100%; min-width: max-content; }
+.qt th, .qtext th {
+  text-align: left; font-family: var(--mono); font-size: .68rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted); background: var(--surface-2); padding: 9px 14px; border-bottom: 1px solid var(--line); white-space: nowrap;
+}
+.qt td, .qtext td { padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.qt tr:last-child td, .qtext tr:last-child td { border-bottom: 0; }
+.qt tbody tr:nth-child(even), .qtext tr:nth-child(even) td { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
+.qt td + td, .qtext td + td, .qt th + th, .qtext th + th { border-left: 1px solid var(--line); }
+.qtext td:first-child { font-family: var(--mono); font-size: .85rem; color: var(--muted); white-space: nowrap; background: var(--surface-2); }
+.qtext td { font-family: var(--mono); font-size: .85rem; text-align: center; }
+.qtext td:first-child { text-align: left; }
+.qt .c-key { font-family: var(--mono); font-weight: 600; width: 38%; background: var(--surface-2); }
+.qt .c-sel { width: 112px; }
+.qt select { width: 100%; }
+.qt .c-sel select { text-align: center; font-family: var(--mono); font-weight: 600; }
+.qt .c-res { width: 1%; white-space: nowrap; font-weight: 700; font-size: .85rem; }
+.qt .c-res.ok { color: var(--accent); }
+.qt .c-res.bad { color: var(--bad); }
+.qt tr:has(.c-res.ok) td:not(.c-res):not(.c-key) { background: var(--accent-soft); }
+.qt tr:has(.c-res.bad) td:not(.c-res):not(.c-key) { background: var(--bad-soft); }
+
+@media (max-width: 600px) {
+  .qt-wrap { overflow: visible; border: 0; }
+  table.qt, .qt tbody, .qt tr, .qt td { display: block; width: 100%; }
+  .qt thead { display: none; }
+  .qt tr { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 10px; overflow: hidden; background: var(--surface-2); }
+  .qt td, .qt td + td { border: 0; padding: 8px 12px; }
+  .qt .c-key { width: 100%; padding-bottom: 2px; background: none; }
+  .qt .c-sel { width: 100%; }
+  .qt .c-sel select { width: 100%; text-align: left; }
+  .qt tr:has(.c-res.ok), .qt tr:has(.c-res.bad) { border-width: 1.5px; }
+  .qt tr:has(.c-res.ok) { border-color: var(--accent); }
+  .qt tr:has(.c-res.bad) { border-color: var(--bad); }
+  .qt .c-res { width: 100%; white-space: normal; padding-top: 0; }
+  .qt tbody tr:nth-child(even) { background: var(--surface-2); }
+}
