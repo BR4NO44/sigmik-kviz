@@ -227,3 +227,11 @@ table.qt, .qtext table { border-collapse: collapse; width: 100%; font-size: .9re
   .qt .c-res { width: 100%; white-space: normal; padding-top: 0; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* menu */
+#menu { display: flex; gap: 2px; margin-left: 12px; }
+#menu button { border: 0; background: none; color: var(--muted); padding: 6px 10px; border-radius: 6px; font-size: .9rem; }
+#menu button:hover:not(:disabled) { background: var(--subtle); color: var(--text); }
+#menu button.on { color: var(--text); background: var(--subtle); }
+.lec .count { color: var(--muted); font-size: .85rem; white-space: nowrap; }
+@media (max-width: 600px) { .brand { display: none; } #menu { margin-left: 0; } }

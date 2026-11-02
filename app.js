@@ -190,12 +190,22 @@ function renderQuestion(q, idx, review) {
 }
 
 /* ------------------------------------------------------------------ obrazovky */
-const DONE_KEY = "kviz-hotove";
-const getDone = () => { try { return JSON.parse(localStorage.getItem(DONE_KEY)) || []; } catch (e) { return []; } };
-const markDone = (lecs) => { try { localStorage.setItem(DONE_KEY, JSON.stringify([...new Set([...getDone(), ...lecs])])); } catch (e) {} };
+
+function setNav(id) {
+  document.querySelectorAll("#menu button").forEach((b) => b.classList.toggle("on", b.dataset.v === id));
+}
+
+function showBoard() {
+  stopTimer();
+  state = null;
+  setNav("rebricek");
+  $app.replaceChildren(el("div", { class: "page-title" }, el("h1", {}, "Rebríček")), boardCard());
+  window.scrollTo({ top: 0 });
+}
 
 function showStart() {
   stopTimer();
+  setNav("kapitoly");
   state = null;
   $app.replaceChildren();
   const chosen = new Set(Object.keys(LECTURES).map(Number));
@@ -203,15 +213,13 @@ function showStart() {
 
   const lectures = el("div", { class: "lecs" });
   const start = el("button", { class: "primary go" }, "Spustiť test");
-  const done = getDone();
   for (const [n, name] of Object.entries(LECTURES)) {
     const cnt = BANK.filter((d) => d.lec === +n).length;
     const cb = el("input", { type: "checkbox", checked: true, "aria-label": `Prednáška ${n}` });
     cb.addEventListener("change", () => { cb.checked ? chosen.add(+n) : chosen.delete(+n); start.disabled = chosen.size === 0; });
-    const fin = done.includes(+n);
     lectures.append(el("label", { class: "lec" }, cb,
-      el("span", { class: "t" }, `${n}. ${name}`, el("small", {}, `${cnt} otázok`)),
-      el("span", { class: "badge" + (fin ? " done" : "") }, fin ? "Dokončené" : "Nespustené")));
+      el("span", { class: "t" }, `${n}. ${name}`),
+      el("span", { class: "count" }, `${cnt} otázok`)));
   }
   $app.append(el("div", { class: "field" }, lectures));
 
@@ -234,7 +242,6 @@ function showStart() {
     showQuiz();
   });
   $app.append(start);
-  $app.append(el("div", { style: "margin-top:40px" }, boardCard()));
 }
 
 function startTimer() {
@@ -258,6 +265,7 @@ function refreshNav() {
 const rerender = () => showQuiz();
 
 function showQuiz() {
+  setNav(null);
   const { qs, cur } = state;
   const q = qs[cur];
   $app.replaceChildren();
@@ -291,13 +299,13 @@ async function finish() {
   stopTimer();
   // do rebríčka sa ráta každá zodpovedaná otázka (aj z tréningu); správna = plný počet bodov
   const given = state.qs.map((q, i) => (answered(q, state.answers[i]) ? grade(q, state.answers[i]) : null)).filter((x) => x !== null);
-  markDone([...new Set(state.qs.map((q) => q.lec))]);
   state.right = given.filter((x) => x >= 0.999).length;
   if (given.length) state.submit = await submitScore(state.right, given.length);
   showResults();
 }
 
 function showResults(onlyWrong = false) {
+  setNav(null);
   const { qs, answers } = state;
   const scores = qs.map((q, i) => grade(q, answers[i]));
   const sum = scores.reduce((x, y) => x + y, 0);
@@ -394,7 +402,13 @@ function boardCard(rows) {
   return card;
 }
 
-document.getElementById("home").addEventListener("click", () => { if (!state || state.done || confirm("Ukončiť rozpracovaný test a vrátiť sa domov?")) showStart(); });
+const leave = (view) => () => {
+  if (state && !state.done && !confirm("Test ešte nie je dokončený. Ak odídeš, rozpracované odpovede sa stratia. Naozaj odísť?")) return;
+  view();
+};
+document.getElementById("home").addEventListener("click", leave(showStart));
+document.querySelector('#menu [data-v="kapitoly"]').addEventListener("click", leave(showStart));
+document.querySelector('#menu [data-v="rebricek"]').addEventListener("click", leave(showBoard));
 updateWho();
 showStart();
 if (!getName()) askName(true);
