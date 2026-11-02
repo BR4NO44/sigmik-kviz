@@ -142,7 +142,7 @@ button.primary:hover:not(:disabled) { background: var(--accent-hover); border-co
 .qtext { font-size: 1.1rem; line-height: 1.6; font-weight: 500; margin-bottom: 20px; }
 .qtext svg { max-width: 100%; height: auto; display: block; margin: 12px 0; }
 
-.opt { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; margin-bottom: 8px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; background: var(--surface); transition: background .12s, border-color .12s; }
+.opt { position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; margin-bottom: 8px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; background: var(--surface); transition: background .12s, border-color .12s; }
 .opt:hover { background: var(--subtle); }
 .opt input { position: absolute; opacity: 0; pointer-events: none; }
 .opt b { flex: none; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; font-family: var(--mono); font-size: .78rem; font-weight: 500; color: var(--muted); border: 1px solid var(--border-strong); text-transform: uppercase; }
@@ -159,8 +159,9 @@ button.primary:hover:not(:disabled) { background: var(--accent-hover); border-co
 .mark { font-weight: 600; white-space: nowrap; font-size: .85rem; }
 .mark.ok { color: var(--ok); } .mark.bad { color: var(--bad); }
 .line { display: flex; align-items: center; gap: 10px; margin: 8px 0; flex-wrap: wrap; }
-input[type="text"], select { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 6px; padding: 6px 10px; min-width: 0; max-width: 100%; }
-input[type="text"]:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+input[type="text"], select { caret-color: var(--accent); background: var(--surface); border: 1px solid var(--border-strong); border-radius: 6px; padding: 6px 10px; min-width: 0; max-width: 100%; }
+input[type="text"]:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.line input[type="text"] { width: 260px; padding: 9px 12px; font-size: 1rem; }
 .qtext select { margin: 0 3px; padding: 2px 6px; font-family: var(--mono); font-size: .88em; }
 .pager { display: flex; justify-content: space-between; gap: 8px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
 .pager button:last-child { margin-left: auto; }
