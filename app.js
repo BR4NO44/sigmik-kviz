@@ -234,6 +234,7 @@ function showStart() {
     el("div", { class: "field" }, el("h2", {}, "Počet otázok"), counts)));
 
   start.addEventListener("click", () => {
+    if (!getName()) { askName(true); return; }
     const n = +counts.querySelector("input:checked").value;
     try { localStorage.setItem(COUNT_KEY, n); } catch (e) {}
     const qs = buildTest([...chosen], n);
@@ -341,29 +342,37 @@ function showResults(onlyWrong = false) {
 
 /* ------------------------------------------------------------------ meno a rebríček */
 const NAME_KEY = "kviz-meno";
-const getName = () => { try { return localStorage.getItem(NAME_KEY) || ""; } catch (e) { return ""; } };
+let memName = ""; // záloha, ak je localStorage nedostupný
+const getName = () => { try { return localStorage.getItem(NAME_KEY) || memName; } catch (e) { return memName; } };
 function updateWho() {
   const b = document.getElementById("who");
   b.textContent = getName() || "bez mena";
   b.onclick = () => askName(false);
 }
 function askName(first) {
+  if (document.querySelector(".modal")) return;
+  first = first || !getName(); // bez mena sa modál nedá zavrieť
+  const lock = (on) => document.querySelectorAll("header.top, main").forEach((n) => { n.inert = on; });
   const inp = el("input", { type: "text", maxlength: "20", value: getName(), placeholder: "Tvoje meno", "aria-label": "Meno" });
   const ok = el("button", { class: "primary" }, "Uložiť");
   const m = el("div", { class: "modal" }, el("div", { class: "card" },
     el("h1", {}, first ? "Ako sa voláš?" : "Zmeniť meno"),
     el("p", { class: "muted" }, "Pod týmto menom sa ti budú počítať správne odpovede."),
     el("div", { class: "line" }, inp),
-    el("div", { class: "row" }, ok, first ? null : el("button", { onclick: () => m.remove() }, "Zrušiť"))));
+    el("div", { class: "row" }, ok, first ? null : el("button", { onclick: () => { lock(false); m.remove(); } }, "Zrušiť"))));
   const save = () => {
     const v = inp.value.trim().slice(0, 20);
     if (!v) { inp.focus(); return; }
+    memName = v;
     try { localStorage.setItem(NAME_KEY, v); } catch (e) {}
-    m.remove(); updateWho();
+    lock(false); m.remove(); updateWho();
     if (!state) showStart();
   };
   ok.addEventListener("click", save);
   inp.addEventListener("keydown", (e) => { if (e.key === "Enter") save(); });
+  m.setAttribute("role", "dialog"); m.setAttribute("aria-modal", "true");
+  if (!first) m.addEventListener("keydown", (e) => { if (e.key === "Escape") { lock(false); m.remove(); } });
+  lock(true);
   document.body.append(m);
   inp.focus();
 }
