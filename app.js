@@ -125,7 +125,7 @@ function renderQuestion(q, idx, review) {
         else state.answers[idx] = i;
         rerender();
       });
-      const lab = el("label", { class: cls }, inp, el("b", {}, q.type === "tf" ? "" : LETTERS[i] + "."), el("span", {}, o));
+      const lab = el("label", { class: cls }, inp, el("b", {}, q.type === "tf" ? "" : LETTERS[i]), el("span", {}, o));
       if (review && isOk) lab.append(el("span", { class: "mark ok" }, " ✓"));
       box.append(lab);
     });
@@ -190,38 +190,40 @@ function renderQuestion(q, idx, review) {
 }
 
 /* ------------------------------------------------------------------ obrazovky */
-const WAVE = '<svg class="wave" viewBox="0 0 560 120" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M0 90h60V30h80v60h80V30h80v60h80V30h80v60h100"/></svg>';
+const DONE_KEY = "kviz-hotove";
+const getDone = () => { try { return JSON.parse(localStorage.getItem(DONE_KEY)) || []; } catch (e) { return []; } };
+const markDone = (lecs) => { try { localStorage.setItem(DONE_KEY, JSON.stringify([...new Set([...getDone(), ...lecs])])); } catch (e) {} };
 
 function showStart() {
   stopTimer();
   state = null;
   $app.replaceChildren();
   const chosen = new Set(Object.keys(LECTURES).map(Number));
-  $app.append(el("section", { class: "hero rise", html:
-    '<div class="kicker">Signálové mikrokontroléry · TMS320F2837xD</div><h1>Over si, čo <em>vieš</em>.</h1>' + WAVE }));
+  $app.append(el("div", { class: "page-title" }, el("h1", {}, "Kapitoly")));
 
-  const setup = el("div", { class: "card rise" });
   const lectures = el("div", { class: "lecs" });
-  const start = el("button", { class: "primary go" }, "Vygenerovať test →");
+  const start = el("button", { class: "primary go" }, "Spustiť test");
+  const done = getDone();
   for (const [n, name] of Object.entries(LECTURES)) {
     const cnt = BANK.filter((d) => d.lec === +n).length;
     const cb = el("input", { type: "checkbox", checked: true, "aria-label": `Prednáška ${n}` });
     cb.addEventListener("change", () => { cb.checked ? chosen.add(+n) : chosen.delete(+n); start.disabled = chosen.size === 0; });
-    lectures.append(el("label", { class: "lec", title: name }, cb, el("span", { class: "n" }, n), el("span", { class: "c" }, `${cnt}`), el("span", { class: "t" }, name)));
+    const fin = done.includes(+n);
+    lectures.append(el("label", { class: "lec" }, cb,
+      el("span", { class: "t" }, `${n}. ${name}`, el("small", {}, `${cnt} otázok`)),
+      el("span", { class: "badge" + (fin ? " done" : "") }, fin ? "Dokončené" : "Nespustené")));
   }
-  setup.append(el("div", { class: "field" }, el("h2", {}, "Prednášky"), lectures));
+  $app.append(el("div", { class: "field" }, lectures));
 
   const m1 = el("input", { type: "radio", name: "mode", value: "test", checked: true });
   const m2 = el("input", { type: "radio", name: "mode", value: "train" });
-  setup.append(el("div", { class: "field" }, el("h2", {}, "Režim"), el("div", { class: "seg" },
-    el("label", {}, m1, "Test", el("small", {}, "výsledok na konci")),
-    el("label", {}, m2, "Tréning", el("small", {}, "kontrola po otázke")))));
-
   let saved = 20;
   try { saved = +localStorage.getItem(COUNT_KEY) || 20; } catch (e) {}
   const counts = el("div", { class: "seg", role: "radiogroup", "aria-label": "Počet otázok" }, COUNTS.map((n) =>
     el("label", {}, el("input", { type: "radio", name: "cnt", value: n, checked: n === saved }), String(n))));
-  setup.append(el("div", { class: "field" }, el("h2", {}, "Počet otázok"), counts));
+  $app.append(el("div", { class: "opts" },
+    el("div", { class: "field" }, el("h2", {}, "Režim"), el("div", { class: "seg" }, el("label", {}, m1, "Test"), el("label", {}, m2, "Tréning"))),
+    el("div", { class: "field" }, el("h2", {}, "Počet otázok"), counts)));
 
   start.addEventListener("click", () => {
     const n = +counts.querySelector("input:checked").value;
@@ -231,15 +233,13 @@ function showStart() {
     startTimer();
     showQuiz();
   });
-  setup.append(start);
-
-  const home = el("div", { class: "home" }, setup, boardCard());
-  $app.append(home);
+  $app.append(start);
+  $app.append(el("div", { style: "margin-top:40px" }, boardCard()));
 }
 
 function startTimer() {
   $timer.hidden = false;
-  const upd = () => { const s = Math.floor((Date.now() - state.t0) / 1000); $timer.textContent = `⏱ ${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; };
+  const upd = () => { const s = Math.floor((Date.now() - state.t0) / 1000); $timer.textContent = `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; };
   upd(); tick = setInterval(upd, 1000);
 }
 function stopTimer() { clearInterval(tick); $timer.hidden = true; }
@@ -291,6 +291,7 @@ async function finish() {
   stopTimer();
   // do rebríčka sa ráta každá zodpovedaná otázka (aj z tréningu); správna = plný počet bodov
   const given = state.qs.map((q, i) => (answered(q, state.answers[i]) ? grade(q, state.answers[i]) : null)).filter((x) => x !== null);
+  markDone([...new Set(state.qs.map((q) => q.lec))]);
   state.right = given.filter((x) => x >= 0.999).length;
   if (given.length) state.submit = await submitScore(state.right, given.length);
   showResults();
@@ -304,21 +305,19 @@ function showResults(onlyWrong = false) {
   $app.replaceChildren();
   const fmtN = (n) => round(n, 2).toString().replace(".", ",");
   const stat = (v, l) => el("div", { class: "stat" }, el("b", {}, String(v)), l);
-  const head = el("div", { class: "card result rise" },
-    el("div", { class: "ring", style: `--p:${pct}` }, el("span", {}, pct + " %")),
-    el("div", {},
-      el("h1", {}, `${fmtN(sum)} / ${qs.length} b.`),
-      el("div", { class: "stats" },
-        stat(`${Math.floor(state.secs / 60)}:${String(state.secs % 60).padStart(2, "0")}`, "čas"),
-        stat(scores.filter((s) => s >= 0.999).length, "správne"),
-        stat(scores.filter((s) => s > 0 && s < 0.999).length, "čiastočne"),
-        stat(scores.filter((s) => s === 0).length, "nesprávne")),
-      state.submit
-        ? el("p", { class: "earned" }, `+${state.right} ${state.right === 1 ? "správna odpoveď" : state.right > 0 && state.right < 5 ? "správne odpovede" : "správnych odpovedí"} do rebríčka`)
-        : el("p", { class: "hint" }, "Body sa nepodarilo uložiť do rebríčka."),
-      el("div", { class: "row" },
-        el("button", { class: "primary", onclick: showStart }, "Nový test"),
-        el("button", { onclick: () => showResults(!onlyWrong) }, onlyWrong ? "Zobraziť všetky" : "Zobraziť len chybné"))));
+  const head = el("div", { class: "card result" },
+    el("h1", {}, `${fmtN(sum)} / ${qs.length}`, el("span", {}, `${pct} %`)),
+    el("div", { class: "stats" },
+      stat(`${Math.floor(state.secs / 60)}:${String(state.secs % 60).padStart(2, "0")}`, "čas"),
+      stat(scores.filter((s) => s >= 0.999).length, "správne"),
+      stat(scores.filter((s) => s > 0 && s < 0.999).length, "čiastočne"),
+      stat(scores.filter((s) => s === 0).length, "nesprávne")),
+    state.submit
+      ? el("p", { class: "earned" }, `+${state.right} ${state.right === 1 ? "správna odpoveď" : state.right > 0 && state.right < 5 ? "správne odpovede" : "správnych odpovedí"} do rebríčka`)
+      : el("p", { class: "hint" }, "Body sa nepodarilo uložiť do rebríčka."),
+    el("div", { class: "row" },
+      el("button", { class: "primary", onclick: showStart }, "Nový test"),
+      el("button", { onclick: () => showResults(!onlyWrong) }, onlyWrong ? "Zobraziť všetky" : "Zobraziť len chybné")));
   $app.append(head);
   $app.append(boardCard(state.submit && state.submit.board));
   qs.forEach((q, i) => {
@@ -374,31 +373,24 @@ async function submitScore(correct, answered) {
   } catch (e) { return null; }
 }
 function boardCard(rows) {
-  const card = el("div", { class: "card rise" }, el("h2", {}, "Rebríček · správne odpovede"));
-  const body = el("div", {}, el("p", { class: "muted" }, "Načítavam…"));
+  const card = el("div", {}, el("h2", {}, "Rebríček · správne odpovede"));
+  const body = el("div", { class: "card" }, el("p", { class: "muted", style: "margin:0" }, "Načítavam…"));
   card.append(body);
   const draw = (list) => {
-    if (!list.length) { body.replaceChildren(el("p", { class: "muted" }, "Zatiaľ tu nikto nie je. Buď prvý!")); return; }
+    if (!list.length) { body.replaceChildren(el("p", { class: "muted", style: "margin:0" }, "Zatiaľ tu nikto nie je. Buď prvý!")); return; }
     const me = getName().toLowerCase();
     const mine = list.find((r) => r.name.toLowerCase() === me);
     const out = [];
-    if (mine) out.push(el("div", { class: "mine" }, el("b", {}, String(mine.correct)), `tvojich správnych odpovedí · ${Math.round(mine.pct * 100)} % úspešnosť`));
-    const medals = ["🥇", "🥈", "🥉"];
-    const top = list.slice(0, 3);
-    if (top.length >= 3) {
-      const pod = (r, k) => el("div", { class: "pod p" + (k + 1) }, el("div", { class: "medal" }, medals[k]), el("div", { class: "nm", title: r.name }, r.name), el("div", { class: "pt" }, String(r.correct), el("small", {}, "správnych")));
-      out.push(el("div", { class: "podium" }, pod(top[1], 1), pod(top[0], 0), pod(top[2], 2)));
-    }
-    const rest = top.length >= 3 ? list.slice(3) : list;
-    const off = top.length >= 3 ? 3 : 0;
-    if (rest.length) out.push(el("ol", { class: "lb", start: off + 1 }, rest.map((r, i) =>
-      el("li", { class: r.name.toLowerCase() === me ? "me" : "" },
-        el("span", { class: "rk" }, String(off + i + 1)), el("span", { class: "nm", title: r.name }, r.name),
-        el("span", { class: "pc" }, Math.round(r.pct * 100) + " %"), el("span", { class: "pt" }, String(r.correct))))));
+    if (mine) out.push(el("p", { class: "mine" }, "Tvoj výsledok: ", el("b", {}, `${mine.correct} správnych`), ` · úspešnosť ${Math.round(mine.pct * 100)} %`));
+    out.push(el("table", { class: "board" },
+      el("thead", {}, el("tr", {}, el("th", {}, "#"), el("th", {}, "Meno"), el("th", { class: "num" }, "Úspešnosť"), el("th", { class: "num" }, "Správne"))),
+      el("tbody", {}, list.map((r, i) => el("tr", { class: r.name.toLowerCase() === me ? "me" : "" },
+        el("td", { class: "rk" }, String(i + 1)), el("td", { class: "nm" }, r.name),
+        el("td", { class: "num muted" }, Math.round(r.pct * 100) + " %"), el("td", { class: "num" }, String(r.correct)))))));
     body.replaceChildren(...out);
   };
   if (rows) draw(rows);
-  else fetchBoard().then(draw).catch(() => body.replaceChildren(el("p", { class: "muted" }, "Rebríček nie je dostupný.")));
+  else fetchBoard().then(draw).catch(() => body.replaceChildren(el("p", { class: "muted", style: "margin:0" }, "Rebríček nie je dostupný.")));
   return card;
 }
 
