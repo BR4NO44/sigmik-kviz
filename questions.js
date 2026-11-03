@@ -538,23 +538,23 @@ S(3, "Action-qualifier", "Čo znamená akcia „toggle“ v Action-qualifier?",
     const out = segs.map((s) => `${X(s[0])},${yo(s[1])}`).join(" ");
     const tri = `${X(0)},${Yc(0)} ${X(1)},${Yc(1)} ${X(2)},${Yc(0)} ${X(3)},${Yc(1)} ${X(4)},${Yc(0)}`;
     const lines = evs.map((e, i) =>
-      `<line x1="${X(e.t)}" x2="${X(e.t)}" y1="${yT - 8}" y2="205" stroke="#555" stroke-dasharray="3 3"/>` +
-      `<text x="${X(e.t) + 3}" y="${yB + 20}" font-size="10" fill="#333" transform="rotate(-90 ${X(e.t) + 3} ${yB + 20})">Event ${events.indexOf(events.find((q) => q.f === e.f)) + 1}</text>`).join("");
+      `<line x1="${X(e.t)}" x2="${X(e.t)}" y1="${yT - 8}" y2="205" stroke="currentColor" stroke-opacity=".55" stroke-dasharray="3 3"/>` +
+      `<text x="${X(e.t) + 3}" y="${yB + 20}" font-size="10" fill="currentColor" fill-opacity=".75" transform="rotate(-90 ${X(e.t) + 3} ${yB + 20})">Event ${events.indexOf(events.find((q) => q.f === e.f)) + 1}</text>`).join("");
     return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Priebeh TBCTR a ${name}" font-family="serif">
-      <line x1="${x0}" y1="${yB}" x2="${x1 + 6}" y2="${yB}" stroke="#000"/>
-      <line x1="${x0}" y1="${yT - 8}" x2="${x0}" y2="${yB}" stroke="#000"/>
-      <line x1="${x0}" x2="${x1}" y1="${Yc(1)}" y2="${Yc(1)}" stroke="#1b3df0"/>
-      <line x1="${x0}" x2="${x1}" y1="${Yc(c)}" y2="${Yc(c)}" stroke="#1a9a1a"/>
-      <text x="4" y="${Yc(1) + 4}" font-size="12" fill="#000">TBPRD</text>
-      <text x="4" y="${Yc(c) + 4}" font-size="12" fill="#000">${cmpName}</text>
-      <text x="28" y="${yB + 3}" font-size="12" fill="#000">0</text>
-      <text x="20" y="14" font-size="12" fill="#000">TBCTR</text>
-      <polyline points="${tri}" fill="none" stroke="#000" stroke-width="1.6"/>
-      <line x1="${x0}" y1="${yo(0)}" x2="${x1 + 6}" y2="${yo(0)}" stroke="#000"/>
-      <line x1="${x0}" y1="${yo(1) - 10}" x2="${x0}" y2="${yo(0)}" stroke="#000"/>
-      <text x="4" y="${yo(1) + 4}" font-size="12" fill="#000">${name}</text>
-      <text x="22" y="${yo(0) + 4}" font-size="12" fill="#000">0</text>
-      <polyline points="${out}" fill="none" stroke="#e11" stroke-width="1.8"/>
+      <line x1="${x0}" y1="${yB}" x2="${x1 + 6}" y2="${yB}" stroke="currentColor"/>
+      <line x1="${x0}" y1="${yT - 8}" x2="${x0}" y2="${yB}" stroke="currentColor"/>
+      <line x1="${x0}" x2="${x1}" y1="${Yc(1)}" y2="${Yc(1)}" style="stroke:var(--wv-blue,#1b3df0)"/>
+      <line x1="${x0}" x2="${x1}" y1="${Yc(c)}" y2="${Yc(c)}" style="stroke:var(--wv-green,#1a9a1a)"/>
+      <text x="4" y="${Yc(1) + 4}" font-size="12" fill="currentColor">TBPRD</text>
+      <text x="4" y="${Yc(c) + 4}" font-size="12" fill="currentColor">${cmpName}</text>
+      <text x="28" y="${yB + 3}" font-size="12" fill="currentColor">0</text>
+      <text x="20" y="14" font-size="12" fill="currentColor">TBCTR</text>
+      <polyline points="${tri}" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <line x1="${x0}" y1="${yo(0)}" x2="${x1 + 6}" y2="${yo(0)}" stroke="currentColor"/>
+      <line x1="${x0}" y1="${yo(1) - 10}" x2="${x0}" y2="${yo(0)}" stroke="currentColor"/>
+      <text x="4" y="${yo(1) + 4}" font-size="12" fill="currentColor">${name}</text>
+      <text x="22" y="${yo(0) + 4}" font-size="12" fill="currentColor">0</text>
+      <polyline points="${out}" fill="none" style="stroke:var(--wv-red,#e11)" stroke-width="1.8"/>
       ${lines}</svg>`;
   }
   G(3, "Action-qualifier", "select", () => {
