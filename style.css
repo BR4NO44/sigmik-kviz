@@ -138,7 +138,8 @@ button.primary:hover:not(:disabled) { background: var(--accent-hover); border-co
 .qhead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
 .qno { font-size: .85rem; font-weight: 500; color: var(--muted); }
 .qno span { font-weight: 400; }
-.tag { font-size: .75rem; color: var(--muted); margin-left: 10px; }
+.tag { font-size: .75rem; color: var(--muted); }
+.qhead > span { display: flex; flex-wrap: wrap; gap: 4px 12px; }
 .qtext { font-size: 1.1rem; line-height: 1.6; font-weight: 500; margin-bottom: 20px; }
 .qtext svg { max-width: 100%; height: auto; display: block; margin: 12px 0; }
 
@@ -215,7 +216,6 @@ table.qt, .qtext table { border-collapse: collapse; width: 100%; font-size: .9re
 @media (max-width: 600px) {
   main.wrap { padding-top: 20px; }
   .card { padding: 18px 16px; }
-  .brand small { display: none; }
   .qt-wrap { overflow: visible; border: 0; }
   table.qt, .qt tbody, .qt tr, .qt td { display: block; width: 100%; }
   .qt thead { display: none; }
@@ -234,11 +234,86 @@ table.qt, .qtext table { border-collapse: collapse; width: 100%; font-size: .9re
 #menu button:hover:not(:disabled) { background: var(--subtle); color: var(--text); }
 #menu button.on { color: var(--text); background: var(--subtle); }
 .lec .count { color: var(--muted); font-size: .85rem; white-space: nowrap; }
-@media (max-width: 600px) { .brand { display: none; } #menu { margin-left: 0; } }
 
 .wrongrow { cursor: default; grid-template-columns: 24px 1fr; align-items: start; }
 .wrongrow:hover { background: none; }
 .wrongrow .lecno { font-family: var(--mono); font-size: .8rem; color: var(--muted); border: 1px solid var(--border-strong); border-radius: 6px; width: 24px; height: 24px; display: grid; place-items: center; }
 .wrongrow + .wrongrow { }
 .go { margin-top: 20px; }
-@media (max-width: 600px) { #menu button { padding: 6px 8px; font-size: .85rem; } }
+
+/* ───────── mobil ───────── */
+html { -webkit-text-size-adjust: 100%; }
+button, label, select, input, .opt, .lec { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+body { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+main.wrap { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+.qtext { overflow-wrap: anywhere; }
+.qtext, .opt span { hyphens: auto; }
+
+@media (max-width: 600px) {
+  /* hlavička: riadok 1 = názov, čas, meno; riadok 2 = menu na celú šírku */
+  .top .wrap { flex-wrap: wrap; height: auto; padding-top: 8px; padding-bottom: 0; gap: 6px 10px; }
+  .brand { font-size: .9rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 0; text-align: left; }
+  .brand:focus:not(:focus-visible) { outline: none; }
+  .spacer { display: none; }
+  .who { max-width: 120px; min-height: 36px; padding: 4px 12px; }
+  .timer { padding: 0 2px; }
+  #menu { order: 5; width: 100%; margin: 0; gap: 0; border-top: 1px solid var(--border); margin-top: 2px; }
+  #menu button { flex: 1; white-space: nowrap; min-height: 44px; padding: 8px 4px; border-radius: 0; font-size: .86rem; border-bottom: 2px solid transparent; }
+  #menu button.on { background: none; border-bottom-color: var(--accent); }
+  body.in-quiz #menu { display: none; }
+  body.in-quiz .top .wrap { padding-bottom: 8px; }
+
+  main.wrap { padding-top: 22px; }
+  h1 { font-size: 1.3rem; }
+  .page-title { margin-bottom: 16px; }
+
+  /* formuláre: 16 px zabráni automatickému priblíženiu na iOS */
+  input[type="text"], select, .qtext select, .line input[type="text"] { font-size: 16px; min-height: 44px; }
+  .qtext select { min-height: 40px; padding: 4px 8px; }
+  .line input[type="text"] { width: 100%; }
+  .line { gap: 8px; }
+
+  /* úvod */
+  .lec { padding: 14px; gap: 12px; grid-template-columns: 20px 1fr; }
+  .lec .count { grid-column: 2; margin-top: -8px; }
+  .lec input { width: 20px; height: 20px; }
+  .opts { gap: 20px; }
+  .opts .field { width: 100%; }
+  .seg { display: flex; }
+  .seg label { flex: 1; text-align: center; padding: 10px 6px; min-height: 44px; display: grid; place-items: center; }
+  .go { width: 100%; min-height: 48px; font-size: 1rem; }
+
+  /* test */
+  .layout .card, .card.result { padding: 18px 16px; }
+  .qtext { font-size: 1.05rem; }
+  .qtext pre { font-size: .8rem; padding: 10px 12px; }
+  .qtext svg { min-width: 440px; }
+  .qtext { overflow-x: auto; }
+  .opt { padding: 14px; gap: 12px; min-height: 52px; }
+  .opt b { width: 26px; height: 26px; }
+  .pager { position: sticky; bottom: 0; margin: 20px -16px -18px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--surface); border-radius: 0 0 10px 10px; z-index: 5; }
+  .pager button { flex: 1; min-height: 46px; }
+  .pager button:last-child { margin-left: 0; }
+  .grid button { width: 40px; height: 40px; }
+  .nav { padding: 16px; }
+  .nav .row button { width: 100%; min-height: 46px; }
+
+  /* výsledok a rebríček */
+  .result h1 { font-size: 2rem; }
+  .stats { gap: 18px 24px; }
+  .result .row button { flex: 1 1 100%; min-height: 46px; }
+  .board { font-size: .85rem; }
+  .board th, .board td { padding: 9px 6px; }
+  .board td.nm { max-width: 38vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wrongrow { grid-template-columns: 24px 1fr !important; }
+
+  /* modál: aby klávesnica nezakryla pole */
+  .modal { align-items: start; padding-top: 14vh; }
+  .modal .card { padding: 20px 16px; }
+  .modal .row button { flex: 1; min-height: 46px; }
+}
+
+@media (max-width: 360px) {
+  .wrap { padding: 0 14px; }
+  #menu button { font-size: .8rem; }
+}

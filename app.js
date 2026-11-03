@@ -252,10 +252,11 @@ function showStart() {
 
 function startTimer() {
   $timer.hidden = false;
+  document.body.classList.add("in-quiz"); // na mobile skryje menu počas testu
   const upd = () => { const s = Math.floor((Date.now() - state.t0) / 1000); $timer.textContent = `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; };
   upd(); tick = setInterval(upd, 1000);
 }
-function stopTimer() { clearInterval(tick); $timer.hidden = true; }
+function stopTimer() { clearInterval(tick); $timer.hidden = true; document.body.classList.remove("in-quiz"); }
 
 let navEl = null;
 function refreshNav() {
@@ -286,7 +287,7 @@ function showQuiz() {
   main.append(el("div", { class: "qhead" }, el("div", { class: "qno" }, `Otázka ${cur + 1} `, el("span", {}, `/ ${qs.length}`)), el("span", {}, el("span", { class: "tag" }, TYPE_LABEL[q.type]), " ", el("span", { class: "tag" }, `Prednáška ${q.lec}`))));
   main.append(renderQuestion(q, cur, rev));
   const pager = el("div", { class: "pager" },
-    el("button", { disabled: cur === 0, onclick: () => { state.cur--; showQuiz(); } }, "← Predchádzajúca"),
+    el("button", { disabled: cur === 0, onclick: () => { state.cur--; showQuiz(); } }, "← Späť"),
     state.train && !rev ? el("button", { onclick: () => { state.checked[cur] = true; showQuiz(); } }, "Skontrolovať") : null,
     cur < qs.length - 1 ? el("button", { class: "primary", onclick: () => { state.cur++; showQuiz(); } }, "Ďalšia →") : el("button", { class: "primary", onclick: finish }, "Skončiť test"));
   main.append(pager);
