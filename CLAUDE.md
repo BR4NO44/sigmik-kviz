@@ -13,7 +13,7 @@ No build, lint or test tooling. Plain static files, vanilla JS.
 
 ## Architecture
 
-Visual theme ("lab oscilloscope": graticule background, phosphor-green accent, light + dark via `prefers-color-scheme`) lives entirely in `style.css` CSS variables; the UI relies on `:has()` for checked states of radio/checkbox cards.
+Visual theme (minimal Linear/Notion-like: neutral greys, single blue accent, 1px borders instead of shadows, Inter font, light + dark via `prefers-color-scheme`) lives in `style.css` CSS variables; the UI relies on `:has()` for checked states. The full architecture diagrams (Mermaid) are in `README.md`; keep them in sync when changing architecture.
 
 `index.html` loads, in order: `questions.js` → `expl.js` → `app.js` (globals, no modules; order matters).
 
