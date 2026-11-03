@@ -44,7 +44,7 @@ module.exports = async (req, res) => {
     const name = String(d.name ?? "").trim().slice(0, 20);
     const correct = parseInt(d.correct, 10);
     const answered = parseInt(d.answered, 10);
-    if (!name || !(answered >= 1 && answered <= 100) || !(correct >= 0 && correct <= answered)) {
+    if (!name || !(answered >= 1 && answered <= 1000) || !(correct >= 0 && correct <= answered)) {
       return res.status(400).json({ error: "bad request" });
     }
     const key = name.toLowerCase();

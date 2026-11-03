@@ -13,7 +13,7 @@ async function redis(...cmd) {
   return (await r.json()).result;
 }
 
-const clean = (a) => (Array.isArray(a) ? a.filter((x) => typeof x === "string" && ID.test(x)).slice(0, 200) : []);
+const clean = (a) => (Array.isArray(a) ? a.filter((x) => typeof x === "string" && ID.test(x)).slice(0, 1000) : []);
 
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");

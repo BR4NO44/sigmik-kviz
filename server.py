@@ -101,8 +101,8 @@ class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/api/wrong":
             try:
-                d = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length", 0)), 16384)))
-                ids = wrong_api(str(d["name"]), list(d.get("add", []))[:200], list(d.get("remove", []))[:200])
+                d = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length", 0)), 65536)))
+                ids = wrong_api(str(d["name"]), list(d.get("add", []))[:1000], list(d.get("remove", []))[:1000])
                 assert ids is not None
             except Exception:
                 return self._json({"error": "bad request"}, 400)
@@ -123,7 +123,7 @@ class Handler(SimpleHTTPRequestHandler):
             name = str(d["name"]).strip()[:20]
             correct = int(d["correct"])
             answered = int(d["answered"])
-            assert name and 1 <= answered <= 100 and 0 <= correct <= answered
+            assert name and 1 <= answered <= 1000 and 0 <= correct <= answered
         except Exception:
             return self._json({"error": "bad request"}, 400)
         key = name.lower()

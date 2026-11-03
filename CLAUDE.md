@@ -23,7 +23,7 @@ Visual theme (minimal Linear/Notion-like: neutral greys, single blue accent, 1px
 - **Leaderboard backend (two interchangeable implementations of `/api/scores`)**:
   - `server.py` – local ThreadingHTTPServer, accumulates per-name totals (lowercase key) in `scores.json` (gitignored); blocks `/scores.json` and `/server.py`.
   - `api/scores.js` – Vercel serverless function (CommonJS) using Upstash Redis REST (`KV_REST_API_URL`/`KV_REST_API_TOKEN` or `UPSTASH_REDIS_REST_*`); returns 503 if env vars are missing.
-  - Both must keep the same contract: POST `{name, correct, answered}` (name ≤ 20 chars, 1 ≤ answered ≤ 100, 0 ≤ correct ≤ answered) accumulates per lowercase name; GET returns rows `{name, correct, answered, tests, pct}` sorted by correct desc, then pct. Redis keys: `kviz:n` (display names), `kviz:c`, `kviz:a`, `kviz:t` (HINCRBY counters). Change one implementation → change the other.
+  - Both must keep the same contract: POST `{name, correct, answered}` (name ≤ 20 chars, 1 ≤ answered ≤ 1000, 0 ≤ correct ≤ answered) accumulates per lowercase name; GET returns rows `{name, correct, answered, tests, pct}` sorted by correct desc, then pct. Redis keys: `kviz:n` (display names), `kviz:c`, `kviz:a`, `kviz:t` (HINCRBY counters). Change one implementation → change the other.
 
 ## Template IDs and practice list
 

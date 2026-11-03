@@ -2,7 +2,7 @@
 
 const $app = document.getElementById("app");
 const $timer = document.getElementById("timer");
-const COUNTS = [5, 10, 15, 20, 30, 40];
+const COUNTS = [5, 10, 15, 20, 30, 40, "all"]; // "all" = všetky dostupné otázky vybraných kapitol
 const COUNT_KEY = "kviz-pocet";
 const TYPE_LABEL = {
   single: "Výber z možností (ABCD)", tf: "Pravda / Nepravda", multi: "Viac správnych odpovedí",
@@ -55,6 +55,7 @@ function inst(d) {
 /* ------------------------------------------------------------------ výber otázok */
 function buildTest(lectures, TOTAL, useBook) {
   const pool = BANK.filter((d) => lectures.includes(d.lec) && (useBook || d.src !== "kniha"));
+  TOTAL = Math.min(TOTAL, pool.length);
   const used = new Set();
   const perLec = Object.fromEntries(lectures.map((l) => [l, 0]));
   const chosen = [];
@@ -245,10 +246,10 @@ function showStart() {
 
   const m1 = el("input", { type: "radio", name: "mode", value: "test", checked: true });
   const m2 = el("input", { type: "radio", name: "mode", value: "train" });
-  let saved = 20;
-  try { saved = +localStorage.getItem(COUNT_KEY) || 20; } catch (e) {}
+  let saved = "20";
+  try { saved = localStorage.getItem(COUNT_KEY) || "20"; } catch (e) {}
   const countSeg = el("div", { class: "seg", role: "radiogroup", "aria-label": "Počet otázok" }, COUNTS.map((n) =>
-    el("label", {}, el("input", { type: "radio", name: "cnt", value: n, checked: n === saved }), String(n))));
+    el("label", {}, el("input", { type: "radio", name: "cnt", value: n, checked: String(n) === saved }), n === "all" ? "Všetky" : String(n))));
   $app.append(el("div", { class: "opts" },
     el("div", { class: "field" }, el("h2", {}, "Režim"), el("div", { class: "seg" }, el("label", {}, m1, "Test"), el("label", {}, m2, "Tréning"))),
     el("div", { class: "field" }, el("h2", {}, "Počet otázok"), countSeg)));
@@ -264,8 +265,9 @@ function showStart() {
 
   start.addEventListener("click", () => {
     if (!getName()) { askName(true); return; }
-    const n = +countSeg.querySelector("input:checked").value;
-    try { localStorage.setItem(COUNT_KEY, n); } catch (e) {}
+    const raw = countSeg.querySelector("input:checked").value;
+    try { localStorage.setItem(COUNT_KEY, raw); } catch (e) {}
+    const n = raw === "all" ? Infinity : +raw;
     const qs = buildTest([...chosen], n, book.checked);
     state = { qs, answers: qs.map(emptyAnswer), checked: qs.map(() => false), cur: 0, train: m2.checked, t0: Date.now(), done: false };
     startTimer();

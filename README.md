@@ -22,7 +22,7 @@ Webová aplikácia na precvičovanie učiva z predmetu **Signálové mikrokontro
 
 ## Funkcie
 
-- **Výber kapitol** (prednášky 1–6) a **počtu otázok** (5, 10, 15, 20, 30, 40).
+- **Výber kapitol** (prednášky 1–6) a **počtu otázok** (5, 10, 15, 20, 30, 40 alebo všetky dostupné).
 - **Zdroj otázok:** otázky z prezentácií sú zahrnuté vždy; prepínač *Kniha* (vpravo hore na stránkach Kapitoly aj Na precvičenie) ich rozšíri o otázky z učebnice (štandardne vypnuté, voľba sa pamätá).
 - **Dva režimy:** *Test* (vyhodnotenie až na konci, meria sa čas) a *Tréning* (po každej otázke ju možno skontrolovať a prečítať vysvetlenie).
 - **Typy otázok:** výber z ABCD, viac správnych odpovedí, pravda/nepravda, číselná odpoveď, doplňanie kódu cez rozbaľovacie polia (vrátane obrázka priebehu PWM), zoraďovanie krokov a priraďovanie pojmov.
@@ -217,7 +217,7 @@ Jediný koncový bod `/api/scores`; lokálny server aj Vercel funkcia dodržiava
 { "name": "Jano", "correct": 14, "answered": 20 }
 ```
 
-Podmienky: meno 1–20 znakov, `1 ≤ answered ≤ 100`, `0 ≤ correct ≤ answered`; inak `400`. Odpoveď: `{ "board": [ …rebríček… ] }`. Bez pripojenej databázy vráti Vercel funkcia `503` a aplikácia zobrazí „Rebríček nie je dostupný“.
+Podmienky: meno 1–20 znakov, `1 ≤ answered ≤ 1000`, `0 ≤ correct ≤ answered`; inak `400`. Odpoveď: `{ "board": [ …rebríček… ] }`. Bez pripojenej databázy vráti Vercel funkcia `503` a aplikácia zobrazí „Rebríček nie je dostupný“.
 
 **Úložisko**
 
