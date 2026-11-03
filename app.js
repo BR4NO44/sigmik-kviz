@@ -31,6 +31,18 @@ const el = (tag, attrs = {}, ...kids) => {
 // stabilné ID šablóny = číslo prednášky + poradie v banke (nové otázky sa pridávajú len na koniec questions.js)
 (() => { const c = {}; BANK.forEach((d, i) => { d.id = d.lec + "." + (c[d.lec] = (c[d.lec] || 0) + 1); d.src = i >= BOOK_FROM ? "kniha" : "prezentacie"; }); })();
 const BOOK_KEY = "kviz-kniha";
+// prepínač „Kniha“ (zdieľaný medzi kapitolami a záložkou Na precvičenie)
+function bookSwitch(onChange) {
+  let on = false;
+  try { on = localStorage.getItem(BOOK_KEY) === "1"; } catch (e) {}
+  const input = el("input", { type: "checkbox", role: "switch", checked: on, "aria-label": "Zahrnúť otázky z knihy" });
+  input.addEventListener("change", () => {
+    try { localStorage.setItem(BOOK_KEY, input.checked ? "1" : "0"); } catch (e) {}
+    if (onChange) onChange(input.checked);
+  });
+  return { input, node: el("label", { class: "switch", title: "Zahrnúť otázky z knihy" }, el("span", {}, "Kniha"), input, el("span", { class: "track" })) };
+}
+
 
 function inst(d) {
   const q = d.make();
@@ -215,7 +227,9 @@ function showStart() {
   state = null;
   $app.replaceChildren();
   const chosen = new Set(Object.keys(LECTURES).map(Number));
-  $app.append(el("div", { class: "page-title" }, el("h1", {}, "Kapitoly")));
+  const bs = bookSwitch(() => refreshCounts());
+  const book = bs.input;
+  $app.append(el("div", { class: "page-title" }, el("h1", {}, "Kapitoly"), bs.node));
 
   const lectures = el("div", { class: "lecs" });
   const counts = {};
@@ -239,9 +253,6 @@ function showStart() {
     el("div", { class: "field" }, el("h2", {}, "Režim"), el("div", { class: "seg" }, el("label", {}, m1, "Test"), el("label", {}, m2, "Tréning"))),
     el("div", { class: "field" }, el("h2", {}, "Počet otázok"), countSeg)));
 
-  let bookSaved = false;
-  try { bookSaved = localStorage.getItem(BOOK_KEY) === "1"; } catch (e) {}
-  const book = el("input", { type: "checkbox", checked: bookSaved, id: "book" });
   const refreshCounts = () => {
     for (const n of Object.keys(LECTURES)) {
       const all = BANK.filter((d) => d.lec === +n);
@@ -249,10 +260,7 @@ function showStart() {
       counts[n].textContent = book.checked ? `${all.length} otázok (z toho ${all.length - pres} z knihy)` : `${pres} otázok`;
     }
   };
-  book.addEventListener("change", () => { try { localStorage.setItem(BOOK_KEY, book.checked ? "1" : "0"); } catch (e) {} refreshCounts(); });
   refreshCounts();
-  $app.append(el("label", { class: "bookopt" }, book,
-    el("span", {}, el("b", {}, "Pridať otázky z knihy"), el("small", {}, "Otázky z prezentácií sú zahrnuté vždy. Kniha ich rozširuje o ďalšie detaily a príklady."))));
 
   start.addEventListener("click", () => {
     if (!getName()) { askName(true); return; }
@@ -460,31 +468,39 @@ async function showWrong() {
   stopTimer();
   state = null;
   setNav("chyby");
-  $app.replaceChildren(el("div", { class: "page-title" }, el("h1", {}, "Na precvičenie")));
+  let ids = null;
   const body = el("div", {}, el("p", { class: "muted" }, "Načítavam…"));
-  $app.append(body);
-  const ids = await fetchWrong();
+  const bs = bookSwitch(() => draw());
+  $app.replaceChildren(el("div", { class: "page-title" }, el("h1", {}, "Na precvičenie"), bs.node), body);
+  const draw = () => {
+    if (ids === null) return;
+    const defs = ids.map((id) => BANK.find((d) => d.id === id)).filter((d) => d && (bs.input.checked || d.src !== "kniha"))
+      .sort((a, b) => a.lec - b.lec || a.id.localeCompare(b.id, undefined, { numeric: true }));
+    if (!defs.length) {
+      body.replaceChildren(el("p", { class: "muted" }, ids.length
+        ? "Zatiaľ máš chybné otázky len z knihy. Zapni prepínač Kniha, ak ich chceš vidieť."
+        : "Zatiaľ tu nemáš žiadne chybné otázky. Keď sa v teste pomýliš, otázka sa uloží sem. Správna odpoveď ju zo zoznamu odstráni."));
+      return;
+    }
+    const list = el("div", { class: "lecs" }, defs.map((d) => {
+      let t = "";
+      try { t = stripTags(d.make().text); } catch (e) {}
+      return el("div", { class: "lec wrongrow" }, el("span", { class: "lecno" }, String(d.lec)),
+        el("span", { class: "t" }, t.length > 130 ? t.slice(0, 127) + "…" : t, el("small", {}, `${d.topic} · ${TYPE_LABEL[d.type]}${d.src === "kniha" ? " · Kniha" : ""}`)));
+    }));
+    const go = el("button", { class: "primary go" }, `Precvičiť (${Math.min(defs.length, 30)})`);
+    go.addEventListener("click", () => {
+      const qs = shuffle(defs).slice(0, 30).map(inst);
+      state = { qs, answers: qs.map(emptyAnswer), checked: qs.map(() => false), cur: 0, train: true, t0: Date.now(), done: false };
+      startTimer();
+      showQuiz();
+    });
+    body.replaceChildren(el("p", { class: "muted" }, `${defs.length} ${defs.length === 1 ? "otázka" : defs.length < 5 ? "otázky" : "otázok"} na precvičenie.`), list, go);
+  };
+  const got = await fetchWrong();
   if (state || !document.querySelector('#menu [data-v="chyby"].on')) return; // medzitým sa odišlo inam
-  const defs = ids.map((id) => BANK.find((d) => d.id === id)).filter(Boolean)
-    .sort((a, b) => a.lec - b.lec || a.id.localeCompare(b.id, undefined, { numeric: true }));
-  if (!defs.length) {
-    body.replaceChildren(el("p", { class: "muted" }, "Zatiaľ tu nemáš žiadne chybné otázky. Keď sa v teste pomýliš, otázka sa uloží sem a môžeš si ju precvičiť. Správna odpoveď ju zo zoznamu odstráni."));
-    return;
-  }
-  const list = el("div", { class: "lecs" }, defs.map((d) => {
-    let t = "";
-    try { t = stripTags(d.make().text); } catch (e) {}
-    return el("div", { class: "lec wrongrow" }, el("span", { class: "lecno" }, String(d.lec)),
-      el("span", { class: "t" }, t.length > 130 ? t.slice(0, 127) + "…" : t, el("small", {}, `${d.topic} · ${TYPE_LABEL[d.type]}`)));
-  }));
-  const go = el("button", { class: "primary go" }, `Precvičiť (${Math.min(defs.length, 30)})`);
-  go.addEventListener("click", () => {
-    const qs = shuffle(defs).slice(0, 30).map(inst);
-    state = { qs, answers: qs.map(emptyAnswer), checked: qs.map(() => false), cur: 0, train: true, t0: Date.now(), done: false };
-    startTimer();
-    showQuiz();
-  });
-  body.replaceChildren(el("p", { class: "muted" }, `${defs.length} ${defs.length === 1 ? "otázka" : defs.length < 5 ? "otázky" : "otázok"} na precvičenie. Pri precvičovaní majú otázky nové hodnoty. Správna odpoveď otázku zo zoznamu odstráni.`), list, go);
+  ids = got;
+  draw();
 }
 
 function boardCard(rows) {
