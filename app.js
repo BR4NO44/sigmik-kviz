@@ -237,7 +237,7 @@ function showStart() {
   const start = el("button", { class: "primary go" }, "Spustiť test");
   for (const [n, name] of Object.entries(LECTURES)) {
     const cb = el("input", { type: "checkbox", checked: true, "aria-label": `Prednáška ${n}` });
-    cb.addEventListener("change", () => { cb.checked ? chosen.add(+n) : chosen.delete(+n); start.disabled = chosen.size === 0; });
+    cb.addEventListener("change", () => { cb.checked ? chosen.add(+n) : chosen.delete(+n); start.disabled = chosen.size === 0; refreshAll(); });
     lectures.append(el("label", { class: "lec" }, cb,
       el("span", { class: "t" }, `${n}. ${name}`),
       counts[n] = el("span", { class: "count" })));
@@ -249,7 +249,7 @@ function showStart() {
   let saved = "20";
   try { saved = localStorage.getItem(COUNT_KEY) || "20"; } catch (e) {}
   const countSeg = el("div", { class: "seg", role: "radiogroup", "aria-label": "Počet otázok" }, COUNTS.map((n) =>
-    el("label", {}, el("input", { type: "radio", name: "cnt", value: n, checked: String(n) === saved }), n === "all" ? "Všetky" : String(n))));
+    el("label", {}, el("input", { type: "radio", name: "cnt", value: n, checked: String(n) === saved }), el("span", { class: n === "all" ? "allq" : "" }, n === "all" ? "Všetky" : String(n)))));
   $app.append(el("div", { class: "opts" },
     el("div", { class: "field" }, el("h2", {}, "Režim"), el("div", { class: "seg" }, el("label", {}, m1, "Test"), el("label", {}, m2, "Tréning"))),
     el("div", { class: "field" }, el("h2", {}, "Počet otázok"), countSeg)));
@@ -260,14 +260,30 @@ function showStart() {
       const pres = all.filter((d) => d.src !== "kniha").length;
       counts[n].textContent = book.checked ? `${all.length} otázok (z toho ${all.length - pres} z knihy)` : `${pres} otázok`;
     }
+    refreshAll();
   };
+  // „Všetky“ = všetky otázky jednej kapitoly; dostupné, len keď je vybraná práve jedna kapitola
+  const allInp = countSeg.querySelector('input[value="all"]');
+  const allLab = allInp.parentNode;
+  function refreshAll() {
+    const one = chosen.size === 1;
+    allInp.disabled = !one;
+    allLab.classList.toggle("off", !one);
+    allLab.title = one ? "" : "Všetky otázky sa dajú zvoliť len pre jednu kapitolu";
+    const txt = allLab.querySelector(".allq");
+    if (one) {
+      const lec = [...chosen][0];
+      txt.textContent = `Všetky (${BANK.filter((d) => d.lec === lec && (book.checked || d.src !== "kniha")).length})`;
+    } else txt.textContent = "Všetky";
+    if (!one && allInp.checked) countSeg.querySelector('input[value="40"]').checked = true;
+  }
   refreshCounts();
 
   start.addEventListener("click", () => {
     if (!getName()) { askName(true); return; }
     const raw = countSeg.querySelector("input:checked").value;
     try { localStorage.setItem(COUNT_KEY, raw); } catch (e) {}
-    const n = raw === "all" ? Infinity : +raw;
+    const n = raw === "all" && chosen.size === 1 ? Infinity : raw === "all" ? 40 : +raw;
     const qs = buildTest([...chosen], n, book.checked);
     state = { qs, answers: qs.map(emptyAnswer), checked: qs.map(() => false), cur: 0, train: m2.checked, t0: Date.now(), done: false };
     startTimer();
