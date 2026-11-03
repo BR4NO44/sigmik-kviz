@@ -29,19 +29,20 @@ const el = (tag, attrs = {}, ...kids) => {
 };
 
 // stabilné ID šablóny = číslo prednášky + poradie v banke (nové otázky sa pridávajú len na koniec questions.js)
-(() => { const c = {}; for (const d of BANK) d.id = d.lec + "." + (c[d.lec] = (c[d.lec] || 0) + 1); })();
+(() => { const c = {}; BANK.forEach((d, i) => { d.id = d.lec + "." + (c[d.lec] = (c[d.lec] || 0) + 1); d.src = i >= BOOK_FROM ? "kniha" : "prezentacie"; }); })();
+const BOOK_KEY = "kviz-kniha";
 
 function inst(d) {
   const q = d.make();
-  q.type = d.type; q.lec = d.lec; q.topic = d.topic; q.id = d.id;
+  q.type = d.type; q.lec = d.lec; q.topic = d.topic; q.id = d.id; q.src = d.src;
   if (q.type === "order") q.shuf = shuffle(q.items.map((_, i) => i));
   if (q.type === "match") q.rights = shuffle(q.pairs.map((p) => p[1]));
   return q;
 }
 
 /* ------------------------------------------------------------------ výber otázok */
-function buildTest(lectures, TOTAL) {
-  const pool = BANK.filter((d) => lectures.includes(d.lec));
+function buildTest(lectures, TOTAL, useBook) {
+  const pool = BANK.filter((d) => lectures.includes(d.lec) && (useBook || d.src !== "kniha"));
   const used = new Set();
   const perLec = Object.fromEntries(lectures.map((l) => [l, 0]));
   const chosen = [];
@@ -217,14 +218,14 @@ function showStart() {
   $app.append(el("div", { class: "page-title" }, el("h1", {}, "Kapitoly")));
 
   const lectures = el("div", { class: "lecs" });
+  const counts = {};
   const start = el("button", { class: "primary go" }, "Spustiť test");
   for (const [n, name] of Object.entries(LECTURES)) {
-    const cnt = BANK.filter((d) => d.lec === +n).length;
     const cb = el("input", { type: "checkbox", checked: true, "aria-label": `Prednáška ${n}` });
     cb.addEventListener("change", () => { cb.checked ? chosen.add(+n) : chosen.delete(+n); start.disabled = chosen.size === 0; });
     lectures.append(el("label", { class: "lec" }, cb,
       el("span", { class: "t" }, `${n}. ${name}`),
-      el("span", { class: "count" }, `${cnt} otázok`)));
+      counts[n] = el("span", { class: "count" })));
   }
   $app.append(el("div", { class: "field" }, lectures));
 
@@ -232,17 +233,32 @@ function showStart() {
   const m2 = el("input", { type: "radio", name: "mode", value: "train" });
   let saved = 20;
   try { saved = +localStorage.getItem(COUNT_KEY) || 20; } catch (e) {}
-  const counts = el("div", { class: "seg", role: "radiogroup", "aria-label": "Počet otázok" }, COUNTS.map((n) =>
+  const countSeg = el("div", { class: "seg", role: "radiogroup", "aria-label": "Počet otázok" }, COUNTS.map((n) =>
     el("label", {}, el("input", { type: "radio", name: "cnt", value: n, checked: n === saved }), String(n))));
   $app.append(el("div", { class: "opts" },
     el("div", { class: "field" }, el("h2", {}, "Režim"), el("div", { class: "seg" }, el("label", {}, m1, "Test"), el("label", {}, m2, "Tréning"))),
-    el("div", { class: "field" }, el("h2", {}, "Počet otázok"), counts)));
+    el("div", { class: "field" }, el("h2", {}, "Počet otázok"), countSeg)));
+
+  let bookSaved = false;
+  try { bookSaved = localStorage.getItem(BOOK_KEY) === "1"; } catch (e) {}
+  const book = el("input", { type: "checkbox", checked: bookSaved, id: "book" });
+  const refreshCounts = () => {
+    for (const n of Object.keys(LECTURES)) {
+      const all = BANK.filter((d) => d.lec === +n);
+      const pres = all.filter((d) => d.src !== "kniha").length;
+      counts[n].textContent = book.checked ? `${all.length} otázok (z toho ${all.length - pres} z knihy)` : `${pres} otázok`;
+    }
+  };
+  book.addEventListener("change", () => { try { localStorage.setItem(BOOK_KEY, book.checked ? "1" : "0"); } catch (e) {} refreshCounts(); });
+  refreshCounts();
+  $app.append(el("label", { class: "bookopt" }, book,
+    el("span", {}, el("b", {}, "Pridať otázky z knihy"), el("small", {}, "Otázky z prezentácií sú zahrnuté vždy. Kniha ich rozširuje o ďalšie detaily a príklady."))));
 
   start.addEventListener("click", () => {
     if (!getName()) { askName(true); return; }
-    const n = +counts.querySelector("input:checked").value;
+    const n = +countSeg.querySelector("input:checked").value;
     try { localStorage.setItem(COUNT_KEY, n); } catch (e) {}
-    const qs = buildTest([...chosen], n);
+    const qs = buildTest([...chosen], n, book.checked);
     state = { qs, answers: qs.map(emptyAnswer), checked: qs.map(() => false), cur: 0, train: m2.checked, t0: Date.now(), done: false };
     startTimer();
     showQuiz();
@@ -284,7 +300,7 @@ function showQuiz() {
 
   const rev = state.train && state.checked[cur];
   const main = el("div", { class: "card" });
-  main.append(el("div", { class: "qhead" }, el("div", { class: "qno" }, `Otázka ${cur + 1} `, el("span", {}, `/ ${qs.length}`)), el("span", {}, el("span", { class: "tag" }, TYPE_LABEL[q.type]), " ", el("span", { class: "tag" }, `Prednáška ${q.lec}`))));
+  main.append(el("div", { class: "qhead" }, el("div", { class: "qno" }, `Otázka ${cur + 1} `, el("span", {}, `/ ${qs.length}`)), el("span", {}, el("span", { class: "tag" }, TYPE_LABEL[q.type]), " ", el("span", { class: "tag" }, `Prednáška ${q.lec}`), q.src === "kniha" ? el("span", { class: "tag" }, "Kniha") : null)));
   main.append(renderQuestion(q, cur, rev));
   const pager = el("div", { class: "pager" },
     el("button", { disabled: cur === 0, onclick: () => { state.cur--; showQuiz(); } }, "← Späť"),
@@ -340,7 +356,7 @@ function showResults(onlyWrong = false) {
   qs.forEach((q, i) => {
     if (onlyWrong && scores[i] >= 0.999) return;
     const card = el("div", { class: "card res-item" });
-    card.append(el("div", { class: "qhead" }, el("div", { class: "qno" }, `Otázka ${i + 1}`), el("span", {}, el("span", { class: "tag" }, TYPE_LABEL[q.type]), " ", el("span", { class: "tag" }, `Prednáška ${q.lec} · ${q.topic}`))));
+    card.append(el("div", { class: "qhead" }, el("div", { class: "qno" }, `Otázka ${i + 1}`), el("span", {}, el("span", { class: "tag" }, TYPE_LABEL[q.type]), " ", el("span", { class: "tag" }, `Prednáška ${q.lec} · ${q.topic}`), q.src === "kniha" ? el("span", { class: "tag" }, "Kniha") : null)));
     state.cur = i;
     card.append(renderQuestion(q, i, true));
     $app.append(card);

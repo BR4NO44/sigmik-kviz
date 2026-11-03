@@ -868,6 +868,8 @@ O(6, "eQEP", "Zoraďte kroky po obsluhe prerušenia eQEP.",
   ["Vyčistiť príznak, ktorý vyvolal prerušenie (napr. PCO)", "Vyčistiť globálny príznak QEP pre prerušenie (INT)", "Vyčistiť príznak na úrovni PIE"]);
 
 
+const BOOK_FROM = BANK.length; // od tohto indexu sú otázky z učebnice (voliteľné rozšírenie)
+
 /* =====================================================================
    DOPLNENÉ OTÁZKY Z UČEBNICE (priečinok kniha)
    POZOR: ID šablóny sa odvodzuje od poradia v banke – nové otázky pridávaj vždy len na KONIEC súboru.

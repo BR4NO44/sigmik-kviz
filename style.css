@@ -323,3 +323,9 @@ main.wrap { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
   .wrap { padding: 0 14px; }
   #menu button { font-size: .8rem; }
 }
+
+.bookopt { display: grid; grid-template-columns: 20px 1fr; gap: 12px; align-items: start; margin-top: 24px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); cursor: pointer; }
+.bookopt:hover { background: var(--subtle); }
+.bookopt input { margin: 2px 0 0; width: 18px; height: 18px; accent-color: var(--accent); }
+.bookopt b { font-weight: 500; display: block; }
+.bookopt small { display: block; color: var(--muted); font-size: .84rem; margin-top: 2px; line-height: 1.45; }

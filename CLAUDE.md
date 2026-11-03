@@ -27,7 +27,7 @@ Visual theme (minimal Linear/Notion-like: neutral greys, single blue accent, 1px
 
 ## Template IDs and practice list
 
-`app.js` assigns each `BANK` def an id `<lec>.<n>` (n = order within that lecture in `BANK`). Players' mistakes are stored by these ids (`/api/wrong`, Redis set `kviz:w:<lowercase-name>`, local `wrong.json`). **Only append new questions at the end of `questions.js`; never delete/reorder existing ones**, or stored ids point to the wrong questions. Book-derived questions are in the block at the end of `questions.js`.
+`app.js` assigns each `BANK` def an id `<lec>.<n>` (n = order within that lecture in `BANK`). Players' mistakes are stored by these ids (`/api/wrong`, Redis set `kviz:w:<lowercase-name>`, local `wrong.json`). **Only append new questions at the end of `questions.js`; never delete/reorder existing ones**, or stored ids point to the wrong questions. Book-derived questions are in the block at the end of `questions.js`, starting at `const BOOK_FROM = BANK.length;` – `app.js` marks defs from that index on as `src = "kniha"` (optional in the UI, off by default); everything before it is "prezentacie" (always included). Keep new presentation-based questions before that marker only if you accept shifting ids – otherwise append after it and they count as book questions.
 
 ## Notes
 
