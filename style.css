@@ -336,3 +336,9 @@ main.wrap { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
 .switch input:focus-visible ~ .track { outline: 2px solid var(--accent); outline-offset: 2px; }
 .switch:has(input:checked) { color: var(--text); }
 @media (max-width: 600px) { .switch { min-height: 44px; } }
+
+.seg.wrap { flex-wrap: wrap; }
+.seg label small { color: inherit; opacity: .6; font-weight: 400; }
+.seg label.off { opacity: .4; cursor: not-allowed; }
+@media (max-width: 600px) { .seg.wrap label { flex: 1 1 22%; padding: 8px 4px; } }
+.seg.wrap label small { display: inline; }

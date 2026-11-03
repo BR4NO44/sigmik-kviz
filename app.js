@@ -472,30 +472,41 @@ async function showWrong() {
   const body = el("div", {}, el("p", { class: "muted" }, "Načítavam…"));
   const bs = bookSwitch(() => draw());
   $app.replaceChildren(el("div", { class: "page-title" }, el("h1", {}, "Na precvičenie"), bs.node), body);
+  let lecSel = "all";
   const draw = () => {
     if (ids === null) return;
-    const defs = ids.map((id) => BANK.find((d) => d.id === id)).filter((d) => d && (bs.input.checked || d.src !== "kniha"))
+    const all = ids.map((id) => BANK.find((d) => d.id === id)).filter((d) => d && (bs.input.checked || d.src !== "kniha"))
       .sort((a, b) => a.lec - b.lec || a.id.localeCompare(b.id, undefined, { numeric: true }));
-    if (!defs.length) {
+    if (!all.length) {
       body.replaceChildren(el("p", { class: "muted" }, ids.length
         ? "Zatiaľ máš chybné otázky len z knihy. Zapni prepínač Kniha, ak ich chceš vidieť."
         : "Zatiaľ tu nemáš žiadne chybné otázky. Keď sa v teste pomýliš, otázka sa uloží sem. Správna odpoveď ju zo zoznamu odstráni."));
       return;
     }
+    const cnt = (n) => all.filter((d) => d.lec === n).length;
+    if (lecSel !== "all" && !cnt(+lecSel)) lecSel = "all";
+    const defs = lecSel === "all" ? all : all.filter((d) => d.lec === +lecSel);
+    const opt = (v, label, n) => {
+      const inp = el("input", { type: "radio", name: "wl", value: v, checked: String(lecSel) === String(v), disabled: n === 0 });
+      inp.addEventListener("change", () => { lecSel = v; draw(); });
+      return el("label", { class: n === 0 ? "off" : "" }, inp, label, el("small", {}, ` ${n}`));
+    };
+    const filter = el("div", { class: "seg wrap", role: "radiogroup", "aria-label": "Téma" },
+      opt("all", "Všetky", all.length), Object.keys(LECTURES).map((n) => opt(n, `Téma ${n}`, cnt(+n))));
     const list = el("div", { class: "lecs" }, defs.map((d) => {
       let t = "";
       try { t = stripTags(d.make().text); } catch (e) {}
       return el("div", { class: "lec wrongrow" }, el("span", { class: "lecno" }, String(d.lec)),
         el("span", { class: "t" }, t.length > 130 ? t.slice(0, 127) + "…" : t, el("small", {}, `${d.topic} · ${TYPE_LABEL[d.type]}${d.src === "kniha" ? " · Kniha" : ""}`)));
     }));
-    const go = el("button", { class: "primary go" }, `Precvičiť (${Math.min(defs.length, 30)})`);
+    const go = el("button", { class: "primary go" }, `Precvičiť${lecSel === "all" ? "" : " tému " + lecSel} (${Math.min(defs.length, 30)})`);
     go.addEventListener("click", () => {
       const qs = shuffle(defs).slice(0, 30).map(inst);
       state = { qs, answers: qs.map(emptyAnswer), checked: qs.map(() => false), cur: 0, train: true, t0: Date.now(), done: false };
       startTimer();
       showQuiz();
     });
-    body.replaceChildren(el("p", { class: "muted" }, `${defs.length} ${defs.length === 1 ? "otázka" : defs.length < 5 ? "otázky" : "otázok"} na precvičenie.`), list, go);
+    body.replaceChildren(filter, el("p", { class: "muted", style: "margin:16px 0 12px" }, `${defs.length} ${defs.length === 1 ? "otázka" : defs.length < 5 ? "otázky" : "otázok"} na precvičenie.`), list, go);
   };
   const got = await fetchWrong();
   if (state || !document.querySelector('#menu [data-v="chyby"].on')) return; // medzitým sa odišlo inam
