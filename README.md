@@ -28,7 +28,7 @@ Webová aplikácia na precvičovanie učiva z predmetu **Signálové mikrokontro
 - **Parametrické otázky:** pri každom generovaní majú iné čísla (periódy časovača, hodnoty ADC, striedy PWM, …), takže sa nedajú zapamätať.
 - **Vysvetlenie ku každej otázke** – aj pri správnej odpovedi.
 - **Čiastočné bodovanie** pri otázkach s viacerými časťami.
-- **Meno hráča** pri prvom vstupe (bez mena sa do aplikácie nedá) a **rebríček** podľa počtu správnych odpovedí.
+- **Meno hráča** pri prvom vstupe (bez mena sa do aplikácie nedá); zariadenie si ho pamätá v `localStorage` aj v dlhodobej cookie, takže ho netreba zadávať znova a **rebríček** podľa počtu správnych odpovedí.
 - Menu v hlavičke, varovanie pri odchode z rozpracovaného testu, svetlý aj tmavý režim, responzívne rozloženie.
 
 ## Architektúra
@@ -83,6 +83,7 @@ flowchart LR
 | `style.css` | Vzhľad (premenné farieb, svetlá/tmavá téma, tabuľky, formuláre). |
 | `server.py` | Lokálny server: statické súbory + `/api/scores` so súborovým úložiskom. |
 | `api/scores.js` | Produkčná implementácia `/api/scores` (Vercel + Upstash Redis). |
+| `api/me.js` | Zapamätanie mena zariadenia v dlhodobej cookie (`/api/me`); lokálne ho rieši `server.py`. |
 | `vercel.json`, `.vercelignore` | Konfigurácia nasadenia, vylúčenie lokálnych súborov z deployu. |
 | `spusti.command` | Spúšťač lokálneho servera pre macOS (dvojklik). |
 
@@ -200,6 +201,8 @@ Jediný koncový bod `/api/scores`; lokálny server aj Vercel funkcia dodržiava
 ```json
 [{ "name": "Jano", "correct": 42, "answered": 60, "tests": 4, "pct": 0.7 }]
 ```
+
+**`GET` / `POST /api/me`** – meno zariadenia v cookie `kviz_name` (400 dní, `HttpOnly`): `GET` vráti `{ "name": "…" }`, `POST {name}` ho nastaví.
 
 **`POST /api/scores`**
 

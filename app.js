@@ -349,6 +349,17 @@ function updateWho() {
   b.textContent = getName() || "bez mena";
   b.onclick = () => askName(false);
 }
+// meno sa ukladá aj do dlhodobej cookie na serveri, aby prežilo vymazanie localStorage
+const rememberName = (v) => { fetch("/api/me", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: v }) }).catch(() => {}); };
+async function restoreName() {
+  if (getName()) { rememberName(getName()); return; } // obnoví cookie, ak už vypršala
+  try {
+    const r = await fetch("/api/me", { cache: "no-store" });
+    const n = r.ok ? ((await r.json()).name || "").trim().slice(0, 20) : "";
+    if (n) { memName = n; try { localStorage.setItem(NAME_KEY, n); } catch (e) {} }
+  } catch (e) {}
+}
+
 function askName(first) {
   if (document.querySelector(".modal")) return;
   first = first || !getName(); // bez mena sa modál nedá zavrieť
@@ -365,6 +376,7 @@ function askName(first) {
     if (!v) { inp.focus(); return; }
     memName = v;
     try { localStorage.setItem(NAME_KEY, v); } catch (e) {}
+    rememberName(v);
     lock(false); m.remove(); updateWho();
     if (!state) showStart();
   };
@@ -418,6 +430,9 @@ const leave = (view) => () => {
 document.getElementById("home").addEventListener("click", leave(showStart));
 document.querySelector('#menu [data-v="kapitoly"]').addEventListener("click", leave(showStart));
 document.querySelector('#menu [data-v="rebricek"]').addEventListener("click", leave(showBoard));
-updateWho();
-showStart();
-if (!getName()) askName(true);
+(async () => {
+  await restoreName();
+  updateWho();
+  showStart();
+  if (!getName()) askName(true);
+})();

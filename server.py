@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Jednoduchý server: servíruje kvíz a ráta správne odpovede na meno do scores.json (bez databázy)."""
 import json, os, threading
+from http.cookies import SimpleCookie
+from urllib.parse import quote, unquote
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -39,7 +41,23 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _me(self, name=None):
+        """Dlhodobá cookie s menom zariadenia (rovnaký kontrakt ako api/me.js)."""
+        if name is None:
+            c = SimpleCookie(self.headers.get("Cookie", ""))
+            return self._json({"name": unquote(c["kviz_name"].value)[:20] if "kviz_name" in c else ""})
+        body = json.dumps({"name": name}, ensure_ascii=False).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Set-Cookie", "kviz_name=%s; Max-Age=%d; Path=/; SameSite=Lax; HttpOnly" % (quote(name), 400 * 24 * 3600))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self):
+        if self.path.split("?")[0] == "/api/me":
+            return self._me()
         if self.path.split("?")[0] == "/api/scores":
             with LOCK:
                 return self._json(board(load()))
@@ -48,6 +66,14 @@ class Handler(SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def do_POST(self):
+        if self.path == "/api/me":
+            try:
+                d = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length", 0)), 1024)))
+                name = str(d["name"]).strip()[:20]
+                assert name
+            except Exception:
+                return self._json({"error": "bad request"}, 400)
+            return self._me(name)
         if self.path != "/api/scores":
             return self.send_error(404)
         try:
