@@ -2,11 +2,13 @@
 """Jednoduchý server: servíruje kvíz a ráta správne odpovede na meno do scores.json (bez databázy)."""
 import json, os, threading
 from http.cookies import SimpleCookie
-from urllib.parse import quote, unquote
+import re
+from urllib.parse import parse_qs, quote, unquote, urlparse
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FILE = os.path.join(HERE, "scores.json")
+WRONG = os.path.join(HERE, "wrong.json")  # otázky na precvičenie: meno → [id…]
 LOCK = threading.Lock()
 
 
@@ -16,6 +18,33 @@ def load():
             return json.load(f)
     except (OSError, ValueError):
         return {}
+
+
+def load_wrong():
+    try:
+        with open(WRONG, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def wrong_api(name, add=(), remove=()):
+    """Rovnaký kontrakt ako api/wrong.js."""
+    key = name.strip()[:20].lower()
+    if not key:
+        return None
+    with LOCK:
+        data = load_wrong()
+        ids = set(data.get(key, []))
+        ids |= {x for x in add if isinstance(x, str) and re.fullmatch(r"[1-9]\.\d{1,4}", x)}
+        ids -= set(remove)
+        if add or remove:
+            data[key] = sorted(ids)
+            tmp = WRONG + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=1)
+            os.replace(tmp, WRONG)
+        return sorted(ids)
 
 
 def board(data):
@@ -56,16 +85,28 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self):
+        if self.path.split("?")[0] == "/api/wrong":
+            name = parse_qs(urlparse(self.path).query).get("name", [""])[0]
+            ids = wrong_api(name)
+            return self._json({"ids": ids}) if ids is not None else self._json({"error": "bad request"}, 400)
         if self.path.split("?")[0] == "/api/me":
             return self._me()
         if self.path.split("?")[0] == "/api/scores":
             with LOCK:
                 return self._json(board(load()))
-        if self.path.split("?")[0] in ("/scores.json", "/server.py"):
+        if self.path.split("?")[0] in ("/scores.json", "/wrong.json", "/server.py"):
             return self.send_error(404)
         return super().do_GET()
 
     def do_POST(self):
+        if self.path == "/api/wrong":
+            try:
+                d = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length", 0)), 16384)))
+                ids = wrong_api(str(d["name"]), list(d.get("add", []))[:200], list(d.get("remove", []))[:200])
+                assert ids is not None
+            except Exception:
+                return self._json({"error": "bad request"}, 400)
+            return self._json({"ids": ids})
         if self.path == "/api/me":
             try:
                 d = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length", 0)), 1024)))

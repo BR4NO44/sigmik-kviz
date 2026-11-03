@@ -28,6 +28,17 @@ const el = (tag, attrs = {}, ...kids) => {
   return e;
 };
 
+// stabilné ID šablóny = číslo prednášky + poradie v banke (nové otázky sa pridávajú len na koniec questions.js)
+(() => { const c = {}; for (const d of BANK) d.id = d.lec + "." + (c[d.lec] = (c[d.lec] || 0) + 1); })();
+
+function inst(d) {
+  const q = d.make();
+  q.type = d.type; q.lec = d.lec; q.topic = d.topic; q.id = d.id;
+  if (q.type === "order") q.shuf = shuffle(q.items.map((_, i) => i));
+  if (q.type === "match") q.rights = shuffle(q.pairs.map((p) => p[1]));
+  return q;
+}
+
 /* ------------------------------------------------------------------ výber otázok */
 function buildTest(lectures, TOTAL) {
   const pool = BANK.filter((d) => lectures.includes(d.lec));
@@ -49,13 +60,7 @@ function buildTest(lectures, TOTAL) {
   while (chosen.length < TOTAL) {
     if (!takeFrom(pool.filter((d) => !used.has(d)))) break;
   }
-  return shuffle(chosen).map((d) => {
-    const q = d.make();
-    q.type = d.type; q.lec = d.lec; q.topic = d.topic;
-    if (q.type === "order") q.shuf = shuffle(q.items.map((_, i) => i));
-    if (q.type === "match") q.rights = shuffle(q.pairs.map((p) => p[1]));
-    return q;
-  });
+  return shuffle(chosen).map(inst);
 }
 
 function emptyAnswer(q) {
@@ -302,6 +307,7 @@ async function finish() {
   const given = state.qs.map((q, i) => (answered(q, state.answers[i]) ? grade(q, state.answers[i]) : null)).filter((x) => x !== null);
   state.right = given.filter((x) => x >= 0.999).length;
   if (given.length) state.submit = await submitScore(state.right, given.length);
+  syncWrong(state.qs.filter((q, i) => answered(q, state.answers[i]) && q.id));
   showResults();
 }
 
@@ -324,6 +330,7 @@ function showResults(onlyWrong = false) {
     state.submit
       ? el("p", { class: "earned" }, `+${state.right} ${state.right === 1 ? "správna odpoveď" : state.right > 0 && state.right < 5 ? "správne odpovede" : "správnych odpovedí"} do rebríčka`)
       : el("p", { class: "hint" }, "Body sa nepodarilo uložiť do rebríčka."),
+    state.wrongAdded ? el("p", { class: "hint" }, `${state.wrongAdded} ${state.wrongAdded === 1 ? "chybná otázka uložená" : "chybných otázok uložených"} na precvičenie (záložka Na precvičenie).`) : null,
     el("div", { class: "row" },
       el("button", { class: "primary", onclick: showStart }, "Nový test"),
       el("button", { onclick: () => showResults(!onlyWrong) }, onlyWrong ? "Zobraziť všetky" : "Zobraziť len chybné")));
@@ -401,6 +408,68 @@ async function submitScore(correct, answered) {
     return await r.json();
   } catch (e) { return null; }
 }
+/* ------------------------------------------------------------------ otázky na precvičenie (chyby) */
+const wrongKey = () => "kviz-chyby-" + getName().toLowerCase();
+const readWrongCache = () => { try { return JSON.parse(localStorage.getItem(wrongKey())) || []; } catch (e) { return []; } };
+const writeWrongCache = (ids) => { try { localStorage.setItem(wrongKey(), JSON.stringify(ids)); } catch (e) {} };
+
+async function fetchWrong() {
+  try {
+    const r = await fetch("/api/wrong?name=" + encodeURIComponent(getName()), { cache: "no-store" });
+    if (!r.ok) throw new Error();
+    const ids = (await r.json()).ids;
+    writeWrongCache(ids);
+    return ids;
+  } catch (e) { return readWrongCache(); }
+}
+// po teste: pomýlené otázky sa pridajú do zoznamu, správne zodpovedané sa z neho odoberú
+async function syncWrong(answeredQs) {
+  const add = [], remove = [];
+  for (const q of answeredQs) (grade(q, state.answers[state.qs.indexOf(q)]) >= 0.999 ? remove : add).push(q.id);
+  state.wrongAdded = add.length;
+  if (!add.length && !remove.length) return;
+  const cur = new Set(readWrongCache());
+  add.forEach((x) => cur.add(x)); remove.forEach((x) => cur.delete(x));
+  writeWrongCache([...cur]);
+  try {
+    const r = await fetch("/api/wrong", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: getName(), add, remove }) });
+    if (r.ok) writeWrongCache((await r.json()).ids);
+  } catch (e) {}
+}
+
+const stripTags = (h) => h.replace(/<pre>[\s\S]*?<\/pre>/g, " … ").replace(/<[^>]+>/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+
+async function showWrong() {
+  stopTimer();
+  state = null;
+  setNav("chyby");
+  $app.replaceChildren(el("div", { class: "page-title" }, el("h1", {}, "Na precvičenie")));
+  const body = el("div", {}, el("p", { class: "muted" }, "Načítavam…"));
+  $app.append(body);
+  const ids = await fetchWrong();
+  if (state || !document.querySelector('#menu [data-v="chyby"].on')) return; // medzitým sa odišlo inam
+  const defs = ids.map((id) => BANK.find((d) => d.id === id)).filter(Boolean)
+    .sort((a, b) => a.lec - b.lec || a.id.localeCompare(b.id, undefined, { numeric: true }));
+  if (!defs.length) {
+    body.replaceChildren(el("p", { class: "muted" }, "Zatiaľ tu nemáš žiadne chybné otázky. Keď sa v teste pomýliš, otázka sa uloží sem a môžeš si ju precvičiť. Správna odpoveď ju zo zoznamu odstráni."));
+    return;
+  }
+  const list = el("div", { class: "lecs" }, defs.map((d) => {
+    let t = "";
+    try { t = stripTags(d.make().text); } catch (e) {}
+    return el("div", { class: "lec wrongrow" }, el("span", { class: "lecno" }, String(d.lec)),
+      el("span", { class: "t" }, t.length > 130 ? t.slice(0, 127) + "…" : t, el("small", {}, `${d.topic} · ${TYPE_LABEL[d.type]}`)));
+  }));
+  const go = el("button", { class: "primary go" }, `Precvičiť (${Math.min(defs.length, 30)})`);
+  go.addEventListener("click", () => {
+    const qs = shuffle(defs).slice(0, 30).map(inst);
+    state = { qs, answers: qs.map(emptyAnswer), checked: qs.map(() => false), cur: 0, train: true, t0: Date.now(), done: false };
+    startTimer();
+    showQuiz();
+  });
+  body.replaceChildren(el("p", { class: "muted" }, `${defs.length} ${defs.length === 1 ? "otázka" : defs.length < 5 ? "otázky" : "otázok"} na precvičenie. Pri precvičovaní majú otázky nové hodnoty. Správna odpoveď otázku zo zoznamu odstráni.`), list, go);
+}
+
 function boardCard(rows) {
   const card = el("div", {}, el("h2", {}, "Rebríček · správne odpovede"));
   const body = el("div", { class: "card" }, el("p", { class: "muted", style: "margin:0" }, "Načítavam…"));
@@ -430,6 +499,7 @@ const leave = (view) => () => {
 document.getElementById("home").addEventListener("click", leave(showStart));
 document.querySelector('#menu [data-v="kapitoly"]').addEventListener("click", leave(showStart));
 document.querySelector('#menu [data-v="rebricek"]').addEventListener("click", leave(showBoard));
+document.querySelector('#menu [data-v="chyby"]').addEventListener("click", leave(showWrong));
 (async () => {
   await restoreName();
   updateWho();

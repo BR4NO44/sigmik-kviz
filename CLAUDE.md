@@ -25,6 +25,10 @@ Visual theme (minimal Linear/Notion-like: neutral greys, single blue accent, 1px
   - `api/scores.js` – Vercel serverless function (CommonJS) using Upstash Redis REST (`KV_REST_API_URL`/`KV_REST_API_TOKEN` or `UPSTASH_REDIS_REST_*`); returns 503 if env vars are missing.
   - Both must keep the same contract: POST `{name, correct, answered}` (name ≤ 20 chars, 1 ≤ answered ≤ 100, 0 ≤ correct ≤ answered) accumulates per lowercase name; GET returns rows `{name, correct, answered, tests, pct}` sorted by correct desc, then pct. Redis keys: `kviz:n` (display names), `kviz:c`, `kviz:a`, `kviz:t` (HINCRBY counters). Change one implementation → change the other.
 
+## Template IDs and practice list
+
+`app.js` assigns each `BANK` def an id `<lec>.<n>` (n = order within that lecture in `BANK`). Players' mistakes are stored by these ids (`/api/wrong`, Redis set `kviz:w:<lowercase-name>`, local `wrong.json`). **Only append new questions at the end of `questions.js`; never delete/reorder existing ones**, or stored ids point to the wrong questions. Book-derived questions are in the block at the end of `questions.js`.
+
 ## Notes
 
 - `.vercelignore` excludes `server.py`, `spusti.command`, `scores.json`, `README.md` from the Vercel deployment.

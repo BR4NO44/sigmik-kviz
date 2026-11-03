@@ -26,6 +26,7 @@ Webová aplikácia na precvičovanie učiva z predmetu **Signálové mikrokontro
 - **Dva režimy:** *Test* (vyhodnotenie až na konci, meria sa čas) a *Tréning* (po každej otázke ju možno skontrolovať a prečítať vysvetlenie).
 - **Typy otázok:** výber z ABCD, viac správnych odpovedí, pravda/nepravda, číselná odpoveď, doplňanie kódu cez rozbaľovacie polia (vrátane obrázka priebehu PWM), zoraďovanie krokov a priraďovanie pojmov.
 - **Parametrické otázky:** pri každom generovaní majú iné čísla (periódy časovača, hodnoty ADC, striedy PWM, …), takže sa nedajú zapamätať.
+- **Na precvičenie:** otázky, v ktorých sa hráč pomýlil, sa ukladajú na meno hráča a v záložke *Na precvičenie* ich môže precvičovať (s novými hodnotami); správna odpoveď otázku zo zoznamu odstráni.
 - **Vysvetlenie ku každej otázke** – aj pri správnej odpovedi.
 - **Čiastočné bodovanie** pri otázkach s viacerými časťami.
 - **Meno hráča** pri prvom vstupe (bez mena sa do aplikácie nedá); zariadenie si ho pamätá v `localStorage` aj v dlhodobej cookie, takže ho netreba zadávať znova a **rebríček** podľa počtu správnych odpovedí.
@@ -83,6 +84,7 @@ flowchart LR
 | `style.css` | Vzhľad (premenné farieb, svetlá/tmavá téma, tabuľky, formuláre). |
 | `server.py` | Lokálny server: statické súbory + `/api/scores` so súborovým úložiskom. |
 | `api/scores.js` | Produkčná implementácia `/api/scores` (Vercel + Upstash Redis). |
+| `api/wrong.js` | Chybne zodpovedané otázky na meno hráča (`/api/wrong`, Redis množina `kviz:w:<meno>`); lokálne ho rieši `server.py` (`wrong.json`). |
 | `api/me.js` | Zapamätanie mena zariadenia v dlhodobej cookie (`/api/me`); lokálne ho rieši `server.py`. |
 | `vercel.json`, `.vercelignore` | Konfigurácia nasadenia, vylúčenie lokálnych súborov z deployu. |
 | `spusti.command` | Spúšťač lokálneho servera pre macOS (dvojklik). |
@@ -127,7 +129,9 @@ sequenceDiagram
 ├── expl.js             # vysvetlenia k otázkam
 ├── app.js              # logika a UI
 ├── api/
-│   └── scores.js       # Vercel funkcia (rebríček)
+│   ├── scores.js       # Vercel funkcia (rebríček)
+│   ├── wrong.js        # chybné otázky na meno
+│   └── me.js           # zapamätanie mena (cookie)
 ├── server.py           # lokálny server (rebríček v scores.json)
 ├── spusti.command      # spúšťač pre macOS
 ├── vercel.json         # { "cleanUrls": true }
@@ -159,7 +163,7 @@ Pomocné konštruktéry v `questions.js`:
 | `P(lec, topic, text, páry, …)` | priraďovanie | náhodne sa vyberú 4 páry |
 | `G(lec, topic, typ, () => ({…}))` | ľubovoľný typ | používa sa pre parametrické otázky a doplňanie kódu |
 
-Banka obsahuje približne **250 šablón** (prednáška 1: 78, 2: 32, 3: 38, 4: 16, 5: 41, 6: 45) a viaceré z nich generujú nekonečne veľa variantov (výpočty časovačov, PWM, ADC, eQEP, kódy PIE/IER, priebeh AQCTL).
+Banka obsahuje **482 šablón** (prednáška 1: 131, 2: 75, 3: 80, 4: 43, 5: 83, 6: 70) z prednášok aj z učebnice (blok „Doplnené otázky z učebnice“ na konci `questions.js`) a viaceré z nich generujú nekonečne veľa variantov (výpočty časovačov, PWM, ADC, eQEP, kódy PIE/IER, priebeh AQCTL).
 
 ## Ako sa generuje test
 
@@ -204,6 +208,8 @@ Jediný koncový bod `/api/scores`; lokálny server aj Vercel funkcia dodržiava
 
 **`GET` / `POST /api/me`** – meno zariadenia v cookie `kviz_name` (400 dní, `HttpOnly`): `GET` vráti `{ "name": "…" }`, `POST {name}` ho nastaví.
 
+**`GET /api/wrong?name=…`** → `{ "ids": ["3.12", …] }`; **`POST /api/wrong`** `{ name, add: [ids], remove: [ids] }` pridá/odoberie ID šablón a vráti aktuálny zoznam.
+
 **`POST /api/scores`**
 
 ```json
@@ -217,7 +223,7 @@ Podmienky: meno 1–20 znakov, `1 ≤ answered ≤ 100`, `0 ≤ correct ≤ answ
 | Prostredie | Kde | Formát |
 |---|---|---|
 | Lokálne | `scores.json` (v `.gitignore`) | slovník `meno_malými → {name, correct, answered, tests}` |
-| Vercel | Upstash Redis | štyri hashe: `kviz:n` (zobrazené meno), `kviz:c` (správne), `kviz:a` (zodpovedané), `kviz:t` (testy); pole = meno malými písmenami, pripočítanie cez `HINCRBY` |
+| Vercel | Upstash Redis | štyri hashe: `kviz:n` (zobrazené meno), `kviz:c` (správne), `kviz:a` (zodpovedané), `kviz:t` (testy); pole = meno malými písmenami, pripočítanie cez `HINCRBY`; k tomu množina `kviz:w:<meno>` s ID chybných šablón (`SADD`/`SREM`) |
 
 ## Lokálne spustenie
 
@@ -251,6 +257,7 @@ Každý `git push` do vetvy `main` spustí automatický deploy. `.vercelignore` 
 
 2. **Každá otázka musí mať vysvetlenie** – buď ako posledný argument, alebo záznam v `EXPL` v `expl.js` (kľúč je podreťazec textu otázky).
 3. Pre parametrickú otázku použi `G(lec, topic, typ, () => { …losovanie…; return {text, …, expl}; })` s pomocnými `R(od, do)`, `pick(pole)`, `shuffle(pole)`.
+5. **ID šablóny** (napr. `3.12` = 12. šablóna prednášky 3 v poradí v banke) sa používa v zozname chýb. Preto nové otázky pridávaj vždy len **na koniec** `questions.js` a existujúce nemaž ani nepreraďuj.
 4. Nové číslo prednášky treba doplniť aj do `LECTURES`.
 
 Žiadny build ani test nie je potrebný – stačí obnoviť stránku.

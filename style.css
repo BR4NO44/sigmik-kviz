@@ -235,3 +235,10 @@ table.qt, .qtext table { border-collapse: collapse; width: 100%; font-size: .9re
 #menu button.on { color: var(--text); background: var(--subtle); }
 .lec .count { color: var(--muted); font-size: .85rem; white-space: nowrap; }
 @media (max-width: 600px) { .brand { display: none; } #menu { margin-left: 0; } }
+
+.wrongrow { cursor: default; grid-template-columns: 24px 1fr; align-items: start; }
+.wrongrow:hover { background: none; }
+.wrongrow .lecno { font-family: var(--mono); font-size: .8rem; color: var(--muted); border: 1px solid var(--border-strong); border-radius: 6px; width: 24px; height: 24px; display: grid; place-items: center; }
+.wrongrow + .wrongrow { }
+.go { margin-top: 20px; }
+@media (max-width: 600px) { #menu button { padding: 6px 8px; font-size: .85rem; } }

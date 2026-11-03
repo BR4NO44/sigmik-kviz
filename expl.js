@@ -32,7 +32,7 @@ const EXPL = [
   ["Kedy môže časová základňa vyslať signál", "Synchronizačný signál sa vysiela pri príchode EPWMxSYNCI (prepošle sa ďalej), pri CTR = 0 alebo pri CTR = CMPB."],
   ["Synchronizácia časových základní medzi PWM modulmi môže", "Synchronizácia funguje len medzi modulmi prepojenými v synchronizačnej schéme (obr. zo slajdu)."],
   ["Zoraďte kroky synchronizácie hodinových signálov", "TBCLKSYNC = 0 zastaví hodiny všetkých modulov, aby sa dali nastaviť bez posunu; po nastavení TBCLKSYNC = 1 začnú bežať naraz."],
-  ["PCLKCR2 sa pri synchronizácii", "Bit TBCLKSYNC drží časové základne zastavené počas konfigurácie a jeho nastavením na 1 sa spustia súčasne."],
+  ["PCLKCR2 sa pri synchronizácii", "Bit TBCLKSYNC drží časové základne zastavené počas konfigurácie a jeho nastavením na 1 sa spustia súčasne. (Pozn.: prednáška uvádza register PCLKCR2, učebnica PCLKCR0 – riaď sa podľa prednášky.)"],
   ["Čo je výstupom Time-base submodulu pre synchronizáciu", "Signál EPWMxSYNC prenáša synchronizáciu do ďalších PWM modulov (fázový posun medzi nimi)."],
   ["Na čo slúžia komparačné registre CMPC a CMPD", "CMPA/CMPB určujú duty cycle; CMPC a CMPD majú len spúšťať udalosti (napr. prerušenie, SOC)."],
   ["Prečo majú komparačné registre tzv. tieňové", "Nová hodnota sa zapíše do tieňového registra a do aktívneho sa prenesie vo vhodný okamih, takže sa nepokazí práve prebiehajúca perióda."],
